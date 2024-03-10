@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { Login, Logout, Register, loginPage, logoutPage, registerPage, resetPassword, resetPasswordLinkVerification, resetPasswordPage, setNewPassword, verifyMail } from "../controllers/UserRegister.Controller.js";
+import { Login, Logout, Register, loginPage, registerPage, resetPasswordLinkVerification, resetPasswordPage, setNewPassword, verifyMail } from "../controllers/UserRegister.Controller.js";
+import { restrictFromSecureRotues } from "../middlewares/Auth.Middleware.js";
 
 const userRegisterRouter = Router();
 
@@ -23,8 +24,7 @@ userRegisterRouter.route("/newPassword")
 userRegisterRouter.route("/verify").get(verifyMail)
 
 userRegisterRouter.route("/logout")
-    .get(logoutPage)
-    .post(restrictFromSecureRotues, Logout)
+    .get(restrictFromSecureRotues(["USER", "ADMIN"]), Logout)
 
 
 export default userRegisterRouter;

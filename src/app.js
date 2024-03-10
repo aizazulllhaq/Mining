@@ -1,5 +1,6 @@
 import express from 'express'
 import ApiError from './utils/ApiError.js';
+import cookieParser from 'cookie-parser';
 import { checkForAuthentication } from './middlewares/Auth.Middleware.js'
 
 const app = express();
@@ -11,8 +12,8 @@ const app = express();
 // Middlewares
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(cookieParser());
 app.use(checkForAuthentication);
-
 
 // Routes
 import userRegisterRouter from './routes/UserRegister.Routes.js';

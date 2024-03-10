@@ -128,12 +128,9 @@ const Login = wrapAsync(async (req, res, next) => {
         )
 });
 
-const logoutPage = (req, res) => {
-    // return logout page
-    return res.status(200).json(new ApiResponse(true, "Logout Pag"));
-}
+const Logout = wrapAsync(async (req, res, next) => {
 
-const Logout = wrapAsync(async (_, res, _) => {
+    console.log("user ", req.user)
 
     const cookieOptions = {
         httpOnly: true,
@@ -236,6 +233,5 @@ export {
     resetPassword,
     resetPasswordLinkVerification,
     setNewPassword,
-    logoutPage,
     Logout
 }
