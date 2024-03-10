@@ -133,7 +133,7 @@ const logoutPage = (req, res) => {
     return res.status(200).json(new ApiResponse(true, "Logout Pag"));
 }
 
-const Logout = wrapAsync(async (req, res, next) => {
+const Logout = wrapAsync(async (_, res, _) => {
 
     const cookieOptions = {
         httpOnly: true,
