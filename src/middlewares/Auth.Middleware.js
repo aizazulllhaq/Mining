@@ -18,7 +18,7 @@ const checkForAuthentication = async (req, _ , next) => {
 }
 
 const restrictFromSecureRotues = (role = []) => {
-    return (req, res, next) => {
+    return (req, _, next) => {
         if (!req.user) return next(new ApiError(401, "UnAuthorize Please First Login"));
 
         if (!req.user.is_verified) return (next(new ApiError(400, "Please First Verify your Mail")));

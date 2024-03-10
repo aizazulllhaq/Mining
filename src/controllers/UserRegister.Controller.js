@@ -128,6 +128,26 @@ const Login = wrapAsync(async (req, res, next) => {
         )
 });
 
+const logoutPage = (req, res) => {
+    // return logout page
+    return res.status(200).json(new ApiResponse(true, "Logout Pag"));
+}
+
+const Logout = wrapAsync(async (req, res, next) => {
+
+    const cookieOptions = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", cookieOptions)
+        .json(
+            new ApiResponse(true, "Logout Successfully")
+        )
+
+});
 
 const resetPasswordPage = (req, res) => {
     // render reset-password-page
@@ -215,5 +235,7 @@ export {
     resetPasswordPage,
     resetPassword,
     resetPasswordLinkVerification,
-    setNewPassword
+    setNewPassword,
+    logoutPage,
+    Logout
 }

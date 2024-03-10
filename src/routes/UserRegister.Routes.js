@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { Login, Register, loginPage, registerPage, resetPassword, resetPasswordLinkVerification, resetPasswordPage, setNewPassword, verifyMail } from "../controllers/UserRegister.Controller.js";
+import { Login, Logout, Register, loginPage, logoutPage, registerPage, resetPassword, resetPasswordLinkVerification, resetPasswordPage, setNewPassword, verifyMail } from "../controllers/UserRegister.Controller.js";
 
 const userRegisterRouter = Router();
 
@@ -21,6 +21,10 @@ userRegisterRouter.route("/newPassword")
 
 
 userRegisterRouter.route("/verify").get(verifyMail)
+
+userRegisterRouter.route("/logout")
+    .get(logoutPage)
+    .post(restrictFromSecureRotues, Logout)
 
 
 export default userRegisterRouter;
