@@ -1,10 +1,9 @@
-import UserRegister from "../models/UserRegister.Model.js";
+import User from "../models/User.Model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import wrapAsync from "../utils/wrapAsync.js";
 import { SendEmailVerificationLink } from '../utils/emailVerificationLink.js'
 import sendResetPasswordLink from "../utils/resetPasswordLink.js";
-import { json } from "express";
 
 const registerPage = (_, res) => {
     res
@@ -22,15 +21,15 @@ const Register = wrapAsync(async (req, res, next) => {
     if ([username, email, password].some((field) => field?.trim == "")) return next(new ApiError(400, "Please Fill all Fields Completely"));
 
     // check if user already exists
-    const isUser = await UserRegister.findOne({ email });
+    const isUser = await User.findOne({ email });
 
     if (isUser) return next(new ApiError(400, "User Already Exists"))
 
     // create user object - create entry in db
-    const newUser = await UserRegister.create({ username: username.toLowerCase(), email, password });
+    const newUser = await User.create({ username: username.toLowerCase(), email, password });
 
     // remove password field from response 
-    const createdUser = await UserRegister.findById(newUser._id).select("-password -rp_token");
+    const createdUser = await User.findById(newUser._id).select("-password -rp_token");
 
     // check for user creation 
     if (!createdUser) return next(new ApiError(400, "Something went wrong while registering user"))
@@ -55,7 +54,7 @@ const verifyMail = wrapAsync(async (req, res, next) => {
 
     if (currentTime > expiry) return next(new ApiError(400, "Email Verification Link is Expired"));
 
-    const user = await UserRegister.findById(id);
+    const user = await User.findById(id);
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
@@ -93,7 +92,7 @@ const Login = wrapAsync(async (req, res, next) => {
     if ([email, password].some((field) => field?.trim == "")) return next(new ApiError(400, "Email and Password are required"));
 
     // check user with ( username or email )
-    const user = await UserRegister.findOne({ email });
+    const user = await User.findOne({ email });
 
     if (!user) return next(new ApiError(400, "User Not Found"));
 
@@ -108,7 +107,7 @@ const Login = wrapAsync(async (req, res, next) => {
     const accessToken = await user.generateAccessToken();
 
     // remove refresh-token from response 
-    const loggedInUser = await UserRegister.findById(user._id).select("-password -token");
+    const loggedInUser = await User.findById(user._id).select("-password -token");
 
     // return response
     const cookieOptions = {
@@ -162,7 +161,7 @@ const resetPassword = wrapAsync(async (req, res, next) => {
     if (!email) return next(new ApiError(400, "Email is Required"));
 
     // check user with email 
-    const user = await UserRegister.findOne({ email });
+    const user = await User.findOne({ email });
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
@@ -185,7 +184,7 @@ const resetPasswordLinkVerification = wrapAsync(async (req, res, next) => {
     if (expiry && currentTime > expiry) return next(new ApiError(400, "Reset Password Link has been Expired"));
 
     // find user by ( id & rp_token ) 
-    const user = await UserRegister.findOne({ _id: id, rp_token: { $elemMatch: { $eq: rp_token } } });
+    const user = await User.findOne({ _id: id, rp_token: { $elemMatch: { $eq: rp_token } } });
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
@@ -202,7 +201,7 @@ const setNewPassword = wrapAsync(async (req, res, next) => {
     const { id, newPassword } = req.body;
 
     // find the user by ( id ) 
-    const user = await UserRegister.findById(id);
+    const user = await User.findById(id);
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
@@ -213,7 +212,7 @@ const setNewPassword = wrapAsync(async (req, res, next) => {
     const updatedUser = await user.save();
 
     // remove password - from response
-    const updatedPasswordUser = await UserRegister.findById(updatedUser._id).select("-password -rp_token -token")
+    const updatedPasswordUser = await User.findById(updatedUser._id).select("-password -rp_token -token")
 
     // return response
     return res
@@ -221,7 +220,56 @@ const setNewPassword = wrapAsync(async (req, res, next) => {
         .json(
             new ApiResponse(true, "Password Change Successfully", updatedPasswordUser)
         )
-})
+});
+
+
+// Secure Controller's
+const userSetProfilePage = wrapAsync(async (req, res, next) => {
+    const user = await User.findById(req.user.id).select("-password -rp_token -token");
+
+    if (!user) return next(new ApiError(404, "User Not Found"));
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(true, "User profile updation page", user)
+        )
+});
+
+const userSetProfile = wrapAsync(async (req, res, next) => {
+    const user = await User.findById(req.user.id);
+
+    if (!user) return next(new ApiError(404, "User Not Found"));
+
+    const { fullName, country, gender } = req.body;
+
+    // update user with remaining fields
+    user.fullName = fullName || user.fullName;
+    user.country = country || user.country;
+    user.gender = gender || user.gender;
+    user.profileImage = req.file.path || user.profileImage;
+
+    const updatedUser = await user.save({ validateBeforeSave: false });
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(true, "User Profile Updated", updatedUser)
+        )
+});
+
+const userProfile = wrapAsync(async (req, res, next) => {
+    const user = await User.findById(req.user.id).select("-password -rp_token -token");
+
+    if (!user) return next(new ApiError(404, "User Not Found"));
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(true, "User Profile Detail", user)
+        )
+});
+
 
 export {
     registerPage,
@@ -233,5 +281,9 @@ export {
     resetPassword,
     resetPasswordLinkVerification,
     setNewPassword,
-    Logout
+    // secure controllers
+    Logout,
+    userSetProfilePage,
+    userSetProfile,
+    userProfile
 }

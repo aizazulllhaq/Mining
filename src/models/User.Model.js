@@ -1,14 +1,49 @@
 import { Schema, model } from "mongoose";
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
 
-const userProfileSchema = new Schema({
-    fullName: {
+const UserSchema = new Schema({
+    username: {
         type: String,
         required: true,
+        unique: true,
+        index: true,
+        lowercase: true,
+    },
+    email: {
+        type: String,
+        required: [true, "Email is Required"],
+        unique: true,
+    },
+    password: {
+        type: String,
+        required: true,
+    },
+    is_verified: {
+        type: Boolean,
+        default: false,
+    },
+    rp_token: [
+        {
+            type: String,
+        }
+    ],
+    token: {
+        type: String,
+    },
+    role: {
+        type: String,
+        enum: ["USER", "ADMIN"],
+        default: "USER",
+    }, fullName: {
+        type: String,
         index: true
     },
     profileImage: {
         type: String,
-        required: true,
+    },
+    gender: {
+        type: String,
     },
     country: {
         type: String,
@@ -17,8 +52,15 @@ const userProfileSchema = new Schema({
     },
     coins: {
         type: Number,
-        enum: ["seaCoin", "seaPearl"],
-        default: "seaPearl"
+        default: 0,
+    },
+    seaPearl: {
+        type: Number,
+        default: 0
+    },
+    seaCoin: {
+        type: Number,
+        default: 0,
     },
     milestone: {
         type: Number,
@@ -28,4 +70,38 @@ const userProfileSchema = new Schema({
     timestamps: true
 });
 
-export const UserProfile = model("UserProfile", userProfileSchema);
+UserSchema.pre("save", async function (next) {
+
+    if (!this.isModified("password")) return next();
+
+    this.password = await bcrypt.hash(this.password, 10); // return hash-password
+
+    next();
+});
+
+UserSchema.methods.isPasswordCorrect = async function (password) {
+    return await bcrypt.compare(password, this.password);
+    // return -> true , false
+}
+
+UserSchema.methods.generateAccessToken = async function () {
+
+    const payload = {
+        id: this._id,
+        email: this.email,
+        is_verified: this.is_verified,
+        role: this.role
+    }
+
+    const token = await jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET,
+        {
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
+        });
+
+    return token;
+}
+
+
+const User = model("User", UserSchema);
+
+export default User;

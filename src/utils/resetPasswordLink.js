@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import generateRandonToken from './generateRandomToken.js';
-import UserRegister from '../models/UserRegister.Model.js';
+import User from '../models/User.Model.js';
 
 const sendResetPasswordLink = async(userID, userName, userEmail) => {
     const transporter = nodemailer.createTransport({
@@ -17,7 +17,7 @@ const sendResetPasswordLink = async(userID, userName, userEmail) => {
     const expiryTimestamp = Math.floor(Date.now() / 1000 + (24 * 60 * 60));
     const randomToken = generateRandonToken();
 
-    const user = await UserRegister.findById(userID);
+    const user = await User.findById(userID);
     user.rp_token.push(randomToken);
 
     await user.save({ validateBeforeSave: false });

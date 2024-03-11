@@ -1,13 +1,11 @@
 import express from 'express'
 import ApiError from './utils/ApiError.js';
 import cookieParser from 'cookie-parser';
-import { checkForAuthentication } from './middlewares/Auth.Middleware.js'
+import { checkForAuthentication, restrictFromSecureRotues } from './middlewares/Auth.Middleware.js'
+
 
 const app = express();
 
-// app.get('/', (req, res) => {
-//     res.status(200).json(new ApiResponse(true, "some Data", "some message"))
-// })
 
 // Middlewares
 app.use(express.urlencoded({ extended: true }));
@@ -15,11 +13,16 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(checkForAuthentication);
 
-// Routes
-import userRegisterRouter from './routes/UserRegister.Routes.js';
-// import { restrictFromSecureRotues } from './middlewares/Auth.Middleware.js';
 
-app.use("/api/v1/users", userRegisterRouter);
+
+// Routes
+import UserRouter from './routes/User.Routes.js';
+import userSecureRouter from './routes/User.Secure.Routes.js';
+
+
+
+app.use("/api/v1/users", UserRouter);
+app.use("/dashboard", restrictFromSecureRotues(["USER", "ADMIN"]), userSecureRouter);
 // app.use("/dashboard", restrictFromSecureRotues(["USER", "ADMIN"]), dashboardRouter);
 
 
