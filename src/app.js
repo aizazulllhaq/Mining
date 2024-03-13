@@ -18,12 +18,13 @@ app.use(checkForAuthentication);
 // Routes
 import UserRouter from './routes/User.Routes.js';
 import userSecureRouter from './routes/User.Secure.Routes.js';
+import miningRouter from './routes/Mining.Routes.js';
 
 
 
 app.use("/api/v1/users", UserRouter);
-app.use("/dashboard", restrictFromSecureRotues(["USER", "ADMIN"]), userSecureRouter);
-// app.use("/dashboard", restrictFromSecureRotues(["USER", "ADMIN"]), dashboardRouter);
+app.use("/dashboard/profile", restrictFromSecureRotues(["USER", "ADMIN"]), userSecureRouter);
+app.use("/dashboard", restrictFromSecureRotues(["USER", "ADMIN"]), miningRouter);
 
 
 

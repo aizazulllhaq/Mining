@@ -1,8 +1,9 @@
 import nodemailer from 'nodemailer';
 import generateRandonToken from './generateRandomToken.js';
 import User from '../models/User.Model.js';
+import { SERVER_URL } from '../constant.js';
 
-const sendResetPasswordLink = async(userID, userName, userEmail) => {
+const sendResetPasswordLink = async(userID, userEmail) => {
     const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
         port: 587,
@@ -26,10 +27,10 @@ const sendResetPasswordLink = async(userID, userName, userEmail) => {
         from: process.env.EMAIL,
         to: userEmail,
         subject: "Subject: Password Reset Request",
-        html: `Dear ${userName},<br><br>
+        html: `Dear User,<br><br>
         - We have received a request to reset the password associated with your account. To proceed with the password reset process, please follow the instructions below:<br><br>
     
-        - Click on the following link to reset your password: <a href="${process.env.SERVER_URL}:${process.env.PORT}/api/v1/users/resetPassword?id=${userID}&expiry=${expiryTimestamp}&rp_token=${randomToken}">Reset Password</a> (If the link doesn't work, please copy and paste it into your web browser's address bar.)<br>
+        - Click on the following link to reset your password: <a href="${SERVER_URL}/api/v1/users/resetPassword?id=${userID}&expiry=${expiryTimestamp}&rp_token=${randomToken}">Reset Password</a> (If the link doesn't work, please copy and paste it into your web browser's address bar.)<br>
     
         - You will be directed to a page where you can set a new password for your account.<br>
         

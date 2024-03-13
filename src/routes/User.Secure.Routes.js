@@ -4,11 +4,11 @@ import { upload } from "../middlewares/Multer.Middleware.js";
 
 const userSecureRouter = Router();
 
-userSecureRouter.route("/set-profile") // Edit or Update Profile
+userSecureRouter.route("/set") // Edit or Update Profile
     .get(userSetProfilePage)
     .post(upload.single("profileImage"), userSetProfile)
 
-userSecureRouter.get("/profile", userProfile)
+userSecureRouter.get("/", userProfile)
 
 
 export default userSecureRouter;

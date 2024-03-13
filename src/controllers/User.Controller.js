@@ -4,6 +4,8 @@ import ApiResponse from "../utils/ApiResponse.js";
 import wrapAsync from "../utils/wrapAsync.js";
 import { SendEmailVerificationLink } from '../utils/emailVerificationLink.js'
 import sendResetPasswordLink from "../utils/resetPasswordLink.js";
+import crypto from 'crypto';
+
 
 const registerPage = (_, res) => {
     res
@@ -15,10 +17,10 @@ const registerPage = (_, res) => {
 
 const Register = wrapAsync(async (req, res, next) => {
     // get data from frontend 
-    const { username, email, password } = req.body;
+    const { email, password } = req.body;
 
     // validation - fields not empty
-    if ([username, email, password].some((field) => field?.trim == "")) return next(new ApiError(400, "Please Fill all Fields Completely"));
+    if ([email, password].some((field) => field?.trim == "")) return next(new ApiError(400, "Please Fill all Fields Completely"));
 
     // check if user already exists
     const isUser = await User.findOne({ email });
@@ -26,7 +28,7 @@ const Register = wrapAsync(async (req, res, next) => {
     if (isUser) return next(new ApiError(400, "User Already Exists"))
 
     // create user object - create entry in db
-    const newUser = await User.create({ username: username.toLowerCase(), email, password });
+    const newUser = await User.create({ email, password });
 
     // remove password field from response 
     const createdUser = await User.findById(newUser._id).select("-password -rp_token");
@@ -35,7 +37,7 @@ const Register = wrapAsync(async (req, res, next) => {
     if (!createdUser) return next(new ApiError(400, "Something went wrong while registering user"))
 
 
-    SendEmailVerificationLink(createdUser._id, createdUser.email, createdUser.username);
+    SendEmailVerificationLink(createdUser._id, createdUser.email);
 
     // return response
     return res
@@ -166,7 +168,7 @@ const resetPassword = wrapAsync(async (req, res, next) => {
     if (!user) return next(new ApiError(404, "User Not Found"));
 
     // send resetPassword-verification link
-    sendResetPasswordLink(user._id, user.username, user.email);
+    sendResetPasswordLink(user._id, user.email);
 
     return res
         .status(200)
@@ -241,10 +243,13 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
-    const { fullName, country, gender } = req.body;
+    const { firstName, lastName, country, gender } = req.body;
 
     // update user with remaining fields
-    user.fullName = fullName || user.fullName;
+    const randomDigits = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(5, '0');
+    const username = `${firstName}_${randomDigits}`;
+    user.username = username || user.username;
+    user.fullName = `${firstName}${lastName}` || user.fullName;
     user.country = country || user.country;
     user.gender = gender || user.gender;
     user.profileImage = req.file.path || user.profileImage;
