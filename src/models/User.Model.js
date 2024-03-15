@@ -74,6 +74,10 @@ const UserSchema = new Schema({
         type: Number,
         default: 0
     },
+    referredBy: {
+        type: Number,
+        default: null,
+    },
     referredCode: {
         type: Number,
         default: null,

@@ -14,6 +14,7 @@ const startMining = wrapAsync(async (req, res, next) => {
             $set: {
                 miningStatus: true,
                 lastMiningTime: currentTime,
+                // increment coins
             }
         });
 

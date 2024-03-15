@@ -34,15 +34,15 @@ const Register = wrapAsync(async (req, res, next) => {
 
     if (req.query.referredCode) {
         const user = await User.findOne({ referredCode: req.query.referredCode });
-        if (!user) return next(new ApiError(404, "User Not Found"));
-        user.directReferred = newUser.referredCode;
-        await user.save();
+        if (user) {
+            user.directReferred = newUser.referredCode;
+            newUser.referredBy = user.referredCode;
+            await user.save();
+        }
     }
 
-    const createdUser = await newUser.save();
 
-    // remove password field from response 
-    // const createdUser = await User.findById(newUser._id).select("-password -rp_token");
+    const createdUser = await newUser.save();
 
     // check for user creation 
     if (!createdUser) return next(new ApiError(400, "Something went wrong while registering user"))
@@ -269,7 +269,6 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
     user.gender = (gender || user.gender);
     user.profileImage = (req.file?.path || user.profileImage);
 
-
     const updatedUser = await user.save({ validateBeforeSave: false });
 
     return res
@@ -292,6 +291,27 @@ const userProfile = wrapAsync(async (req, res, next) => {
         )
 });
 
+const resendEmailVerificationLink = wrapAsync(async (req, res, next) => {
+    const { email } = req.body;
+
+    if (!email) return next(new ApiError(400, "Email is Required"));
+
+    const user = await User.findOne({ email });
+
+    if (!user) return next(new ApiError(404, "User Not Found"));
+
+    if (user.is_verified) return next(new ApiError(400, "Email already verified"));
+
+
+    SendEmailVerificationLink(user._id, user.email);
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(true, "Email Verification Link has been Sent !! please verify", {})
+        )
+
+});
 
 export {
     registerPage,
@@ -307,5 +327,6 @@ export {
     Logout,
     userSetProfilePage,
     userSetProfile,
-    userProfile
+    userProfile,
+    resendEmailVerificationLink
 }
