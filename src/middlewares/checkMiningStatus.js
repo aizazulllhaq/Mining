@@ -1,6 +1,6 @@
-import User from "../models/User.Model"
-import ApiError from "../utils/ApiError";
-import ApiResponse from "../utils/ApiResponse";
+import User from "../models/User.Model.js"
+import ApiError from "../utils/ApiError.js";
+import ApiResponse from "../utils/ApiResponse.js";
 
 const checkMiningStatus = async (req, res, next) => {
     const user = await User.findById(req.user.id);
@@ -25,4 +25,8 @@ const checkMiningStatus = async (req, res, next) => {
         }
     }
     next();
+}
+
+export {
+    checkMiningStatus
 }

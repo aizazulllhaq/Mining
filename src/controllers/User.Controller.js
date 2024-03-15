@@ -28,10 +28,23 @@ const Register = wrapAsync(async (req, res, next) => {
     if (isUser) return next(new ApiError(400, "User Already Exists"))
 
     // create user object - create entry in db
-    const newUser = await User.create({ email, password });
+    const newUser = new User({ email, password });
+    const randomRerredCode = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(8, '0');
+    newUser.referredCode = randomRerredCode || newUser.referredCode;
+
+    if (req.query.referredCode) {
+        const user = await User.findOne({ referredCode: req.query.referredCode });
+        console.log(user);
+        if (!user) return next(new ApiError(404, "User Not Found"));
+        user.directReferred = newUser.referredCode;
+        await user.save();
+    }
+
+    const createdUser = await newUser.save();
+    console.log("createdUser : ", createdUser)
 
     // remove password field from response 
-    const createdUser = await User.findById(newUser._id).select("-password -rp_token");
+    // const createdUser = await User.findById(newUser._id).select("-password -rp_token");
 
     // check for user creation 
     if (!createdUser) return next(new ApiError(400, "Something went wrong while registering user"))
@@ -238,21 +251,56 @@ const userSetProfilePage = wrapAsync(async (req, res, next) => {
         )
 });
 
+// const userSetProfile = wrapAsync(async (req, res, next) => {
+//     const user = await User.findById(req.user.id);
+
+//     if (!user) return next(new ApiError(404, "User Not Found"));
+
+//     const { firstName, lastName, country, gender } = req.body;
+
+//     // update user with remaining fields
+//     try {
+//         const randomUsername = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(5, '0');
+//         const username = `${firstName}_${randomUsername}`;
+//         user.firstName = firstName || `${user.firstName} ${user.lastName}` || user.firstName;
+//         user.lastName = lastName || user.lastName;
+//         user.username = username || user.username;
+//         user.fullName = `${firstName}${lastName}` || `${user.firstName} ${user.lastName}` || user.fullName;
+//         user.country = country || user.country;
+//         user.gender = gender || user.gender;
+//         user.profileImage = req.file?.path || user.profileImage;
+//     } catch (err) {
+//         console.log(err)
+//     }
+
+//     const updatedUser = await user.save({ validateBeforeSave: false });
+
+//     return res
+//         .status(200)
+//         .json(
+//             new ApiResponse(true, "User Profile Updated", updatedUser)
+//         )
+// });
+
 const userSetProfile = wrapAsync(async (req, res, next) => {
     const user = await User.findById(req.user.id);
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
     const { firstName, lastName, country, gender } = req.body;
+    
+    if (firstName) {
+        const randomUsername = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(5, '0');
+        user.firstName = firstName;
+        user.username = `${firstName}_${randomUsername}`;
+    }
+    if (lastName) user.lastName = lastName;
 
-    // update user with remaining fields
-    const randomDigits = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(5, '0');
-    const username = `${firstName}_${randomDigits}`;
-    user.username = username || user.username;
-    user.fullName = `${firstName}${lastName}` || user.fullName;
-    user.country = country || user.country;
-    user.gender = gender || user.gender;
-    user.profileImage = req.file.path || user.profileImage;
+    user.fullName = (firstName || user.firstName) + ' ' + (lastName || user.lastName);
+    user.country = (country || user.country);
+    user.gender = (gender || user.gender);
+    user.profileImage = (req.file?.path || user.profileImage);
+
 
     const updatedUser = await user.save({ validateBeforeSave: false });
 
@@ -262,6 +310,7 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
             new ApiResponse(true, "User Profile Updated", updatedUser)
         )
 });
+
 
 const userProfile = wrapAsync(async (req, res, next) => {
     const user = await User.findById(req.user.id).select("-password -rp_token -token");

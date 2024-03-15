@@ -3,11 +3,20 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
 const UserSchema = new Schema({
-    fullName: {
+    firstName: {
         type: String,
+        default: "",
+    },
+    lastName: {
+        type: String,
+        default: "",
     },
     username: {
         type: String,
+    },
+    fullName: {
+        type: String,
+        default: "",
     },
     email: {
         type: String,
@@ -34,15 +43,15 @@ const UserSchema = new Schema({
         type: String,
         enum: ["USER", "ADMIN"],
         default: "USER",
-    }, fullName: {
-        type: String,
-        index: true
     },
     profileImage: {
         type: String,
+        default: ""
     },
     gender: {
         type: String,
+        enum: ["Male", "Female", "Other"],
+        default: null,
     },
     country: {
         type: String,
@@ -64,21 +73,25 @@ const UserSchema = new Schema({
         type: Number,
         default: 0
     },
-    referrelCode: {
+    referredCode: {
         type: Number,
+        default: null,
     },
     directReferred: {
         type: Number,
+        default: null,
     },
     indirectReffered: {
-        type: Number
+        type: Number,
+        default: null,
     },
     miningStatus: {
         type: Boolean,
         default: false
     },
     lastMiningTime: {
-        type: Number
+        type: Number,
+        default: null,
     }
 }, {
     timestamps: true

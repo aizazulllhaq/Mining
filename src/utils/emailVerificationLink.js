@@ -4,6 +4,7 @@ import { SERVER_URL } from '../constant.js';
 
 
 const SendEmailVerificationLink = (userID, userEmail) => {
+    console.log("sending mail");
     const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
         port: 587,
@@ -40,7 +41,7 @@ const SendEmailVerificationLink = (userID, userEmail) => {
         - Best regards,<br>
         - xyz.com Team`
     };
-    
+
 
     transporter.sendMail(mailOptions, (err, info) => {
         if (err) return console.log("Error Occured while Sending Mail :: ", err);
@@ -49,4 +50,4 @@ const SendEmailVerificationLink = (userID, userEmail) => {
     })
 }
 
-export {SendEmailVerificationLink};
+export { SendEmailVerificationLink };
