@@ -256,7 +256,7 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
     if (!user) return next(new ApiError(404, "User Not Found"));
 
     const { firstName, lastName, country, gender } = req.body;
-    
+
     if (firstName) {
         const randomUsername = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(5, '0');
         user.firstName = firstName;
@@ -265,7 +265,7 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
     if (lastName) user.lastName = lastName;
 
     user.fullName = (firstName || user.firstName) + ' ' + (lastName || user.lastName);
-    user.country = (country || user.country);
+    user.country = (country.toLowerCase() || user.country);
     user.gender = (gender || user.gender);
     user.profileImage = (req.file?.path || user.profileImage);
 
