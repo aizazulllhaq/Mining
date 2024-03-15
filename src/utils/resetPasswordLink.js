@@ -3,7 +3,7 @@ import generateRandonToken from './generateRandomToken.js';
 import User from '../models/User.Model.js';
 import { SERVER_URL } from '../constant.js';
 
-const sendResetPasswordLink = async(userID, userEmail) => {
+const sendResetPasswordLink = async (userID, userEmail) => {
     const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
         port: 587,
@@ -12,7 +12,8 @@ const sendResetPasswordLink = async(userID, userEmail) => {
         auth: {
             user: process.env.EMAIL,
             pass: process.env.GMAIL_SMTP_PASS,
-        }
+        },
+        connectionTimeout: 60000,
     });
 
     const expiryTimestamp = Math.floor(Date.now() / 1000 + (24 * 60 * 60));

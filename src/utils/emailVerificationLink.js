@@ -1,10 +1,8 @@
 import nodemailer from 'nodemailer'
 import generateRandonToken from './generateRandomToken.js';
-import { SERVER_URL } from '../constant.js';
 
 
 const SendEmailVerificationLink = (userID, userEmail) => {
-    console.log("sending mail");
     const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
         port: 587,
@@ -13,7 +11,8 @@ const SendEmailVerificationLink = (userID, userEmail) => {
         auth: {
             user: process.env.EMAIL,
             pass: process.env.GMAIL_SMTP_PASS
-        }
+        },
+        connectionTimeout: 60000
     });
 
     const expiryTimestamp = Math.floor(Date.now() / 1000) + (24 * 60 * 60);// 24 hours from now 
@@ -28,7 +27,7 @@ const SendEmailVerificationLink = (userID, userEmail) => {
         
         Please follow the instructions below to verify your email:<br><br>
         
-        - Click on the following link to verify your email address: <a href="${SERVER_URL}/api/v1/users/verify?id=${userID}&expiry=${expiryTimestamp}&token=${randomToken}">Verify Mail</a> (If the link doesn't work, please copy and paste it into your web browser's address bar.)<br>
+        - Click on the following link to verify your email address: <a href="${process.env.SERVER_URL}/api/v1/users/verify?id=${userID}&expiry=${expiryTimestamp}&token=${randomToken}">Verify Mail</a> (If the link doesn't work, please copy and paste it into your web browser's address bar.)<br>
         
         - You will be directed to a page confirming that your email address has been successfully verified.<br>
         
