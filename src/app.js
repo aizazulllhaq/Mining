@@ -33,7 +33,6 @@ app.use("*", (req, res, next) => {
     next(new ApiError(404, "Page Not Found"));
 });
 
-
 // Error Handling
 app.use((err, req, res, next) => {
     const { statusCode = 500, message = "Some Error Occured" } = err;

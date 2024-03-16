@@ -11,8 +11,9 @@ const UserSchema = new Schema({
         type: String,
         default: "",
     },
-    username: {
+    customerName: {
         type: String,
+        default: "",
     },
     fullName: {
         type: String,
@@ -82,14 +83,18 @@ const UserSchema = new Schema({
         type: Number,
         default: null,
     },
-    directReferred: {
-        type: Number,
-        default: null,
-    },
-    indirectReffered: {
-        type: Number,
-        default: null,
-    },
+    directReferred: [
+        {
+            type: Number,
+            default: null,
+        }
+    ],
+    indirectReffered: [
+        {
+            type: Number,
+            default: null,
+        }
+    ],
     miningStatus: {
         type: Boolean,
         default: false

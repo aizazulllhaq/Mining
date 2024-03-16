@@ -33,11 +33,21 @@ const Register = wrapAsync(async (req, res, next) => {
     newUser.referredCode = randomRerredCode || newUser.referredCode;
 
     if (req.query.referredCode) {
-        const user = await User.findOne({ referredCode: req.query.referredCode });
-        if (user) {
-            user.directReferred = newUser.referredCode;
-            newUser.referredBy = user.referredCode;
-            await user.save();
+        const level1User = await User.findOne({ referredCode: req.query.referredCode });
+        console.log("level_1_user : ", level1User);
+        if (level1User) {
+            level1User.directReferred.push(newUser.referredCode);
+            newUser.referredBy = level1User.referredCode;
+            await level1User.save();
+
+            if (level1User.referredBy) {
+                const level0User = await User.findOne({ referredCode: level1User.referredBy });
+                console.log("level_0_user : ", level0User);
+                if (level0User) {
+                    level0User.indirectReffered.push(newUser.referredCode);
+                    await level0User.save();
+                }
+            }
         }
     }
 
@@ -104,7 +114,7 @@ const Login = wrapAsync(async (req, res, next) => {
     // validation - fields not empty 
     if ([email, password].some((field) => field?.trim == "")) return next(new ApiError(400, "Email and Password are required"));
 
-    // check user with ( username or email )
+    // check user with ( customerName or email )
     const user = await User.findOne({ email });
 
     if (!user) return next(new ApiError(400, "User Not Found"));
@@ -141,8 +151,6 @@ const Login = wrapAsync(async (req, res, next) => {
 });
 
 const Logout = wrapAsync(async (req, res, next) => {
-
-    console.log("user ", req.user)
 
     const cookieOptions = {
         httpOnly: true,
@@ -258,9 +266,9 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
     const { firstName, lastName, country, gender } = req.body;
 
     if (firstName) {
-        const randomUsername = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(5, '0');
+        const randomcustomerName = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(5, '0');
         user.firstName = firstName;
-        user.username = `${firstName}_${randomUsername}`;
+        user.customerName = `${firstName}_${randomcustomerName}`;
     }
     if (lastName) user.lastName = lastName;
 
