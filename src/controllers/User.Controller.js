@@ -13,7 +13,7 @@ const registerPage = (_, res) => {
         .json({
             message: "User Registration Page"
         })
-}
+};
 
 const Register = wrapAsync(async (req, res, next) => {
     // get data from frontend 
@@ -32,9 +32,11 @@ const Register = wrapAsync(async (req, res, next) => {
     const randomRerredCode = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(8, '0');
     newUser.referredCode = randomRerredCode || newUser.referredCode;
 
+    // check if referredCode exists in URL 
     if (req.query.referredCode) {
+        // find user with this referredCode
         const level1User = await User.findOne({ referredCode: req.query.referredCode });
-        console.log("level_1_user : ", level1User);
+        // verify user
         if (level1User) {
             level1User.directReferred.push(newUser.referredCode);
             newUser.referredBy = level1User.referredCode;
@@ -42,20 +44,24 @@ const Register = wrapAsync(async (req, res, next) => {
 
             if (level1User.referredBy) {
                 const level0User = await User.findOne({ referredCode: level1User.referredBy });
-                console.log("level_0_user : ", level0User);
                 if (level0User) {
                     level0User.indirectReffered.push(newUser.referredCode);
                     await level0User.save();
                 }
             }
         }
-    }
+    };
 
 
     const createdUser = await newUser.save();
 
     // check for user creation 
     if (!createdUser) return next(new ApiError(400, "Something went wrong while registering user"))
+
+    // Exclude password, token, and rp_token fields from the createdUser document
+    const filteredUser = await User.findById(createdUser._id, '-password -token -rp_token -_id');
+
+    if (!filteredUser) return next(new ApiError(404, "User Not Found"));
 
 
     SendEmailVerificationLink(createdUser._id, createdUser.email);
@@ -64,7 +70,7 @@ const Register = wrapAsync(async (req, res, next) => {
     return res
         .status(201)
         .json(
-            new ApiResponse(true, "User Created Successfully, Please Verify your Mail", createdUser)
+            new ApiResponse(true, "User Created Successfully, Please Verify your Mail", filteredUser)
         )
 });
 
@@ -96,7 +102,7 @@ const verifyMail = wrapAsync(async (req, res, next) => {
         .json(
             new ApiResponse(true, "Email has been successfully verified")
         )
-})
+});
 
 const loginPage = (_, res) => {
     // render login form page
