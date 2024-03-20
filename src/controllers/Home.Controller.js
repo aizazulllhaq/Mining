@@ -14,7 +14,6 @@ const tapMining = wrapAsync(async (req, res, next) => {
             $set: {
                 miningStatus: true,
                 lastMiningTime: currentTime,
-                // increment coins
             }
         }).select("-password -token -rp_token -_id");
 
@@ -33,7 +32,7 @@ const tapMining = wrapAsync(async (req, res, next) => {
 
                 // Interating Direct Referred Users
                 // NOTE !! map execute asyncronously , to wait for all the iteration we need to use ( await Promise.all )
-                await Promise.all(user.directReferred.map(async (directReferredUser) => { 
+                await Promise.all(user.directReferred.map(async (directReferredUser) => {
                     const verifyDirectReferredUser = await User.findOne({ referredCode: directReferredUser });
                     console.log("verifyDirectUser : ", verifyDirectReferredUser)
                     if (verifyDirectReferredUser.is_verified) {
@@ -78,7 +77,34 @@ const tapMining = wrapAsync(async (req, res, next) => {
 });
 
 
+const leaderBoard = wrapAsync(async (req, res, next) => {
+
+    // Top 3 Users on Leader-Board
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(true,"Top 3 Users",{})
+    )
+
+});
+
+const generateReferrelURL = wrapAsync(async (req, res, next) => {
+
+    const user = await User.findById(req.user?.id);
+
+    const referrelURL = `${process.env.SERVER_URL}/api/v1/users/register?referredCode=${user.referredCode}`;
+    console.log(referrelURL)
+
+    return res
+        .status(201)
+        .json(
+            new ApiResponse(true, "Referrel URL Generated", referrelURL)
+        )
+});
+
 
 export {
     tapMining,
+    leaderBoard,
+    generateReferrelURL
 }
