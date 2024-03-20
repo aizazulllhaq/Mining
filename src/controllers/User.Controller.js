@@ -52,7 +52,6 @@ const Register = wrapAsync(async (req, res, next) => {
         }
     };
 
-
     const createdUser = await newUser.save();
 
     // check for user creation 
@@ -64,7 +63,7 @@ const Register = wrapAsync(async (req, res, next) => {
     if (!filteredUser) return next(new ApiError(404, "User Not Found"));
 
 
-    SendEmailVerificationLink(createdUser._id, createdUser.email);
+    // SendEmailVerificationLink(createdUser._id, createdUser.email);
 
     // return response
     return res
