@@ -82,6 +82,11 @@ const leaderBoard = wrapAsync(async (req, res, next) => {
     // Top 3 Users on Leader-Board
     const topThreeUsers = await User.aggregate([
         {
+            $match: {
+                seaCoin: { $gt: 0 }
+            }
+        },
+        {
             $group: {
                 _id: "$seaCoin",
                 users: {
