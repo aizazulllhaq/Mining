@@ -66,7 +66,7 @@ const tapMining = wrapAsync(async (req, res, next) => {
                 }
             });
         console.log("Mining Status Reset after 12 hours");
-    }, 12 * 60 * 60 * 1000) // 12 * 60 * 60 * 1000 = 12 hours &  60 * 1000 = 1 minute 
+    }, 10000) // 12 * 60 * 60 * 1000 = 12 hours &  60 * 1000 = 1 minute 
 
     // return response with updatedUser
     return res
