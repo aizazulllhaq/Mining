@@ -5,6 +5,7 @@ import wrapAsync from "../utils/wrapAsync.js";
 import { SendEmailVerificationLink } from '../utils/emailVerificationLink.js'
 import sendResetPasswordLink from "../utils/resetPasswordLink.js";
 import crypto from 'crypto';
+import { uploadFileOnLocalAndCloudinary } from "../config/Cloudinary.Config.js";
 
 
 const registerPage = (_, res) => {
@@ -277,10 +278,18 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
     }
     if (lastName) user.lastName = lastName;
 
+    if (req.file) {
+        const response = await uploadFileOnLocalAndCloudinary(req.file.path)
+        if (response) {
+            user.profileImage = response.url;
+        }
+    } else {
+        user.profileImage = user.profileImage;
+    }
+
     user.fullName = (firstName || user.firstName) + ' ' + (lastName || user.lastName);
-    user.country = (country.toLowerCase() || user.country);
+    user.country = (country || user.country);
     user.gender = (gender || user.gender);
-    user.profileImage = (req.file?.path || user.profileImage);
 
     const updatedUser = await user.save({ validateBeforeSave: false });
 

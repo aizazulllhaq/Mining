@@ -80,11 +80,31 @@ const tapMining = wrapAsync(async (req, res, next) => {
 const leaderBoard = wrapAsync(async (req, res, next) => {
 
     // Top 3 Users on Leader-Board
+    const topThreeUsers = await User.aggregate([
+        {
+            $group: {
+                _id: "$seaCoin",
+                users: {
+                    $push: "$$ROOT"
+                }
+            }
+        },
+        {
+            $sort: {
+                _id: -1
+            }
+        },
+        {
+            $limit: 3 // Limit apply on group not nested documents
+        }
+    ]);
+
+
     return res
-    .status(200)
-    .json(
-        new ApiResponse(true,"Top 3 Users",{})
-    )
+        .status(200)
+        .json(
+            new ApiResponse(true, "Top 3 Users", topThreeUsers[0]) // [0] = All documents in [0] group
+        )
 
 });
 
@@ -108,3 +128,4 @@ export {
     leaderBoard,
     generateReferrelURL
 }
+
