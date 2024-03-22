@@ -3,6 +3,39 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import wrapAsync from "../utils/wrapAsync.js";
 
+
+const applyAnotherUserReferredCodeToDoMining = wrapAsync(async (req, res, next) => {
+    const { referrelCode } = req.body;
+
+    if (!referrelCode) return next(new ApiError(404, "Referred Code Not Found"));
+
+    const currentUser = await User.findById({ _id: req.user?.id });
+    const level1User = await User.findOne({ referredCode: referrelCode });
+
+    if (!level1User) return next(new ApiError(404, "User Not Found"));
+
+    // IF USER FOUND : 
+    level1User.directReferred.push(currentUser.referredCode);
+    currentUser.referredBy = level1User.referredCode;
+
+    await currentUser.save();
+    await level1User.save();
+
+    if (level1User.referredBy) {
+        const level2User = await User.findOne({ referredCode: level1User.referredBy });
+        if (level2User) {
+            level2User.indirectReffered.push(level1User.referredCode);
+            await level2User.save();
+        }
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(true, "Referrel Code is Valid . You are good to go to Mine Coins")
+        )
+});
+
 const tapMining = wrapAsync(async (req, res, next) => {
     // creating current timestamp , to check in again mining time is the mining 12 hours completed or Not
     const currentTime = Date.now();
@@ -34,9 +67,10 @@ const tapMining = wrapAsync(async (req, res, next) => {
                 // NOTE !! map execute asyncronously , to wait for all the iteration we need to use ( await Promise.all )
                 await Promise.all(user.directReferred.map(async (directReferredUser) => {
                     const verifyDirectReferredUser = await User.findOne({ referredCode: directReferredUser });
-                    console.log("verifyDirectUser : ", verifyDirectReferredUser)
                     if (verifyDirectReferredUser.is_verified) {
-                        incrementPointLevel += incrementPointLevel * 1.03;
+                        if (verifyDirectReferredUser.miningStatus) {
+                            incrementPointLevel += incrementPointLevel * 1.03;
+                        }
                     }
                 }))
             }
@@ -48,7 +82,9 @@ const tapMining = wrapAsync(async (req, res, next) => {
                 await Promise.all(user.indirectReffered.map(async (indirectReferredUser) => {
                     const verifyIndirectReferrerdUser = await User.findOne({ referredCode: indirectReferredUser });
                     if (verifyIndirectReferrerdUser.is_verified) {
-                        incrementPointLevel += incrementPointLevel * 0.7
+                        if (verifyIndirectReferrerdUser.miningStatus) {
+                            incrementPointLevel += incrementPointLevel * 0.7
+                        }
                     }
                 }))
             }
@@ -118,7 +154,6 @@ const generateReferrelURL = wrapAsync(async (req, res, next) => {
     const user = await User.findById(req.user?.id);
 
     const referrelURL = `${process.env.SERVER_URL}/api/v1/users/register?referredCode=${user.referredCode}`;
-    console.log(referrelURL)
 
     return res
         .status(201)
@@ -131,6 +166,7 @@ const generateReferrelURL = wrapAsync(async (req, res, next) => {
 export {
     tapMining,
     leaderBoard,
-    generateReferrelURL
+    generateReferrelURL,
+    applyAnotherUserReferredCodeToDoMining
 }
 

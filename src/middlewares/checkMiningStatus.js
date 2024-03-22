@@ -7,6 +7,12 @@ const checkMiningStatus = async (req, res, next) => {
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
+    if (!user.referredBy) return next(new ApiError(400, "Referrel Code Not Found , Please Activate Account by other user Referrel Code"));
+
+    const verifyUserByReferrelCode = await User.findOne({ referredCode: user.referredBy });
+
+    if (!verifyUserByReferrelCode) return next(new ApiError(400, "Invalid Referrel Code"));
+
     if (user.miningStatus) {
         const currentTime = Date.now();
 

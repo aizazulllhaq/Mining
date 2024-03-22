@@ -11,7 +11,7 @@ const UserSchema = new Schema({
         type: String,
         default: "",
     },
-    customerName: {
+    username: {
         type: String,
         default: "",
     },
@@ -26,18 +26,17 @@ const UserSchema = new Schema({
     },
     password: {
         type: String,
-        required: [true, "Password is required"],
     },
     is_verified: {
         type: Boolean,
         default: false,
     },
-    rp_token: [
+    rp_otp: [
         {
             type: String,
         }
     ],
-    token: {
+    otp: {
         type: String,
     },
     role: {

@@ -2,13 +2,17 @@ import User from "../models/User.Model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import wrapAsync from "../utils/wrapAsync.js";
-import { SendEmailVerificationLink } from '../utils/emailVerificationLink.js'
-import sendResetPasswordLink from "../utils/resetPasswordLink.js";
 import crypto from 'crypto';
 import { uploadFileOnLocalAndCloudinary } from "../config/Cloudinary.Config.js";
+import { generateOTP } from "../utils/generateOTP.js";
+import jwt from 'jsonwebtoken'
+import { SendEmailVerificationOTP } from "../utils/emailVerificationLink.js";
+import { SendResetPasswordOTP } from "../utils/resetPasswordLink.js";
+import generateJWTTokenForEmailVerification from "../utils/generateJWTForEmailVerification.js";
 
 
-const registerPage = (_, res) => {
+
+const getEmailPage = (_, res) => {
     res
         .status(200)
         .json({
@@ -16,93 +20,76 @@ const registerPage = (_, res) => {
         })
 };
 
-const Register = wrapAsync(async (req, res, next) => {
-    // get data from frontend 
-    const { email, password } = req.body;
+const getEmailToVerify = wrapAsync(async (req, res, next) => {
 
-    // validation - fields not empty
-    if ([email, password].some((field) => field?.trim == "")) return next(new ApiError(400, "Please Fill all Fields Completely"));
+    const { email } = req.body;
 
-    // check if user already exists
-    const isUser = await User.findOne({ email });
+    if (!email) return next(new ApiError(400, "Email is Required"));
 
-    if (isUser) return next(new ApiError(400, "User Already Exists"))
+    const user = await User.findOne({ email });
 
-    // create user object - create entry in db
-    const newUser = new User({ email, password });
-    const randomRerredCode = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(8, '0');
-    newUser.referredCode = randomRerredCode || newUser.referredCode;
+    const token = generateJWTTokenForEmailVerification(email);
 
-    // check if referredCode exists in URL 
-    if (req.query.referredCode) {
-        // find user with this referredCode
-        const level1User = await User.findOne({ referredCode: req.query.referredCode });
-        // verify user
-        if (level1User) {
-            level1User.directReferred.push(newUser.referredCode);
-            newUser.referredBy = level1User.referredCode;
-            await level1User.save();
+    if (user) return res.status(200).json(new ApiResponse(true, "User with this email already exists", token    ))
 
-            if (level1User.referredBy) {
-                const level0User = await User.findOne({ referredCode: level1User.referredBy });
-                if (level0User) {
-                    level0User.indirectReffered.push(newUser.referredCode);
-                    await level0User.save();
-                }
-            }
-        }
-    };
+    const OTP = generateOTP();
 
+    SendEmailVerificationOTP(email, OTP);
+
+    const newUser = new User({ email });
+    newUser.otp = OTP;
     const createdUser = await newUser.save();
-
-    // check for user creation 
-    if (!createdUser) return next(new ApiError(400, "Something went wrong while registering user"))
-
-    // Exclude password, token, and rp_token fields from the createdUser document
-    const filteredUser = await User.findById(createdUser._id, '-password -token -rp_token -_id');
-
-    if (!filteredUser) return next(new ApiError(404, "User Not Found"));
-
-
-    SendEmailVerificationLink(createdUser._id, createdUser.email);
-
-    // return response
-    return res
-        .status(201)
-        .json(
-            new ApiResponse(true, "User Created Successfully, Please Verify your Mail", filteredUser)
-        )
-});
-
-
-const verifyMail = wrapAsync(async (req, res, next) => {
-
-    const { id, expiry, token } = req.query;
-
-    const currentTime = Math.floor(Date.now() / 1000);
-
-    if (currentTime > expiry) return next(new ApiError(400, "Email Verification Link is Expired"));
-
-    const user = await User.findById(id);
-
-    if (!user) return next(new ApiError(404, "User Not Found"));
-
-    if (user.token) return next(new ApiError(400, "Email Verification has already been used"));
-
-    user.token = token;
-    user.is_verified = true;
-
-    await user.save();
-
-    const accessToken = await user.generateAccessToken();
 
     return res
         .status(200)
-        .cookie("accessToken", accessToken)
         .json(
-            new ApiResponse(true, "Email has been successfully verified")
+            new ApiResponse(true, "OTP has been sent please verity it", token)
         )
 });
+
+const verifyEmailAndSetUserDocument = wrapAsync(async (req, res, next) => {
+
+    const { OTP, newPassword, confirmPassword } = req.body;
+
+    if (!OTP) return next(new ApiError(400, "OTP must be required"));
+    if (!(newPassword && confirmPassword)) return next(new ApiError(400, "Password & Confirm Password is required"));
+
+    const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+
+    if (!token) return next(new ApiError(404, "Access Token Not Found"));
+
+    const decodeToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+    if (!decodeToken) return next(new ApiError(400, "Invalid Access Token"));
+
+    const user = await User.findOne({ email: decodeToken.email });
+
+    if (!user) return next(new ApiError(404, "User Not Found"));
+
+    if (user.otp !== OTP) return next(new ApiError(400, "Invalid OTP"));
+
+    if (newPassword !== confirmPassword) return next(new ApiError(400, "New & Confirm password not match"));
+
+    // After the above validation when everything is Clear
+    const randomReferredCode = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(8, '0');
+
+    user.password = newPassword;
+    user.is_verified = true;
+    user.referredCode = randomReferredCode;
+
+    const createdUser = await user.save();
+
+    const accessToken = await createdUser.generateAccessToken();
+
+    if (!createdUser) return next(new ApiError(400, "Something went wrong while registering new user !!"));
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(true, "User Registerd Successfully", { createdUser, accessToken })
+        )
+});
+
 
 const loginPage = (_, res) => {
     // render login form page
@@ -125,12 +112,13 @@ const Login = wrapAsync(async (req, res, next) => {
 
     if (!user) return next(new ApiError(400, "User Not Found"));
 
+    if (!user.is_verified) return next(new ApiError(400, "Please verify your mail"));
+
     // check is password correct
     const isPasswordValid = await user.isPasswordCorrect(password);
 
     if (!isPasswordValid) return next(new ApiError(401, "Invalid Credentials"));
 
-    if (!user.is_verified) return next(new ApiError(400, "Please verify your mail"));
 
     // set or access-token & refresh-token 
     const accessToken = await user.generateAccessToken();
@@ -138,15 +126,8 @@ const Login = wrapAsync(async (req, res, next) => {
     // remove refresh-token from response 
     const loggedInUser = await User.findById(user._id).select("-password -token");
 
-    // return response
-    const cookieOptions = {
-        httpOnly: true,
-        secure: true,
-    };
-
     return res
         .status(200)
-        .cookie("accessToken", accessToken, cookieOptions)
         .json(
             new ApiResponse(
                 true,
@@ -156,16 +137,15 @@ const Login = wrapAsync(async (req, res, next) => {
         )
 });
 
-const Logout = wrapAsync(async (req, res, next) => {
+const Logout = wrapAsync(async (_, res, next) => {
 
-    const cookieOptions = {
-        httpOnly: true,
-        secure: true
-    }
+    // const cookieOptions = {
+    //     httpOnly: true,
+    //     secure: true
+    // }
 
     return res
         .status(200)
-        .clearCookie("accessToken", cookieOptions)
         .json(
             new ApiResponse(true, "Logout Successfully")
         )
@@ -193,62 +173,53 @@ const resetPassword = wrapAsync(async (req, res, next) => {
     if (!user) return next(new ApiError(404, "User Not Found"));
 
     // send resetPassword-verification link
-    sendResetPasswordLink(user._id, user.email);
+    // sendResetPasswordLink(user._id, user.email);
+    const OTP = generateOTP();
+
+    SendResetPasswordOTP(user.email, OTP);
+
+    user.rp_otp.push(OTP);
+
+    await user.save();
+
+    const token = generateJWTTokenForEmailVerification(user.email);
 
     return res
         .status(200)
         .json(
-            new ApiResponse(true, "Reset Password Link has been sent , please check", {})
+            new ApiResponse(true, "Reset Password OTP has been sent", token)
         )
 });
 
-const resetPasswordLinkVerification = wrapAsync(async (req, res, next) => {
-    // get ( id , expiry , rp_token ) from frontend 
-    const { id, expiry, rp_token } = req.query;
+const verifyOTPAndSetNewPassword = wrapAsync(async (req, res, next) => {
 
-    // check user with ( id ) , link expiration with ( expiry )
-    const currentTime = Math.floor(Date.now() / 1000);
-    if (expiry && currentTime > expiry) return next(new ApiError(400, "Reset Password Link has been Expired"));
+    const token = req.cookies.accessToken || req.header("Authorization").replace("Bearer ", "");
+    const { OTP, newPassword, confirmPassword } = req.body;
 
-    // find user by ( id & rp_token ) 
-    const user = await User.findOne({ _id: id, rp_token: { $elemMatch: { $eq: rp_token } } });
+    if (!token) return next(new ApiError(404, "Access Token Not Found"));
+
+    const decodeToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+    if (!decodeToken) return next(new ApiError(400, "Invalid Access Token"));
+
+    const user = await User.findOne({ email: decodeToken.email });
 
     if (!user) return next(new ApiError(404, "User Not Found"));
+
+    if (!user.rp_otp.includes(OTP)) return next(new ApiError(400, "Invalid Reset Password OTP"));
+
+    if (!(newPassword && confirmPassword)) return next(new ApiError(400, "New & Confirm Password not match"));
+
+    user.password = newPassword;
+    await user.save();
 
     // render newPasswordPage with ( id ) 
     return res
         .status(200)
         .json(
-            new ApiResponse(true, "Enter your New Password", { id: user._id })
+            new ApiResponse(true, "Password has successfully updated . Please login with new password", {})
         )
 });
-
-const setNewPassword = wrapAsync(async (req, res, next) => {
-    // get ( id , password ) from frontend
-    const { id, newPassword } = req.body;
-
-    // find the user by ( id ) 
-    const user = await User.findById(id);
-
-    if (!user) return next(new ApiError(404, "User Not Found"));
-
-    // set user new password
-    user.password = await newPassword;
-    user.rp_token = [];
-
-    const updatedUser = await user.save();
-
-    // remove password - from response
-    const updatedPasswordUser = await User.findById(updatedUser._id).select("-password -rp_token -token")
-
-    // return response
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(true, "Password Change Successfully", updatedPasswordUser)
-        )
-});
-
 
 // Secure Controller's
 const userSetProfilePage = wrapAsync(async (req, res, next) => {
@@ -313,42 +284,18 @@ const userProfile = wrapAsync(async (req, res, next) => {
         )
 });
 
-const resendEmailVerificationLink = wrapAsync(async (req, res, next) => {
-    const { email } = req.body;
-
-    if (!email) return next(new ApiError(400, "Email is Required"));
-
-    const user = await User.findOne({ email });
-
-    if (!user) return next(new ApiError(404, "User Not Found"));
-
-    if (user.is_verified) return next(new ApiError(400, "Email already verified"));
-
-
-    SendEmailVerificationLink(user._id, user.email);
-
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(true, "Email Verification Link has been Sent !! please verify", {})
-        )
-
-});
-
 export {
-    registerPage,
-    Register,
+    getEmailPage,
+    getEmailToVerify,
     loginPage,
     Login,
-    verifyMail,
     resetPasswordPage,
     resetPassword,
-    resetPasswordLinkVerification,
-    setNewPassword,
+    verifyOTPAndSetNewPassword,
     // secure controllers
     Logout,
     userSetProfilePage,
     userSetProfile,
     userProfile,
-    resendEmailVerificationLink
+    verifyEmailAndSetUserDocument
 }

@@ -2,25 +2,23 @@ import { Router } from "express";
 import {
     Login,
     Logout,
-    Register,
+    getEmailToVerify,
     loginPage,
-    registerPage,
-    resendEmailVerificationLink,
+    getEmailPage,
     resetPassword,
-    resetPasswordLinkVerification,
     resetPasswordPage,
-    setNewPassword,
-    verifyMail
+    verifyEmailAndSetUserDocument,
+    verifyOTPAndSetNewPassword,
 } from "../controllers/User.Controller.js";
 import { restrictFromSecureRotues } from "../middlewares/Auth.Middleware.js";
 
 const UserRouter = Router();
 
 UserRouter.route("/register")
-    .get(registerPage)
-    .post(Register);
+    .get(getEmailPage)
+    .post(getEmailToVerify)
 
-UserRouter.route("/verify").get(verifyMail)
+UserRouter.post("/register/verify-email", verifyEmailAndSetUserDocument)
 
 UserRouter.route("/login")
     .get(loginPage)
@@ -31,11 +29,7 @@ UserRouter.route("/resetPassword")
     .get(resetPasswordPage)
     .post(resetPassword)
 
-UserRouter.route("/newPassword")
-    .get(resetPasswordLinkVerification)
-    .post(setNewPassword)
-
-UserRouter.get('/verify-email', resendEmailVerificationLink);
+UserRouter.post("/newPassword", verifyOTPAndSetNewPassword);
 
 // Secure Routes
 
