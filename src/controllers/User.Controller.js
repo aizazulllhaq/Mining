@@ -245,7 +245,7 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
     if (firstName) {
         const randomcustomerName = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(5, '0');
         user.firstName = firstName;
-        user.customerName = `${firstName}_${randomcustomerName}`;
+        user.username = `${firstName}_${randomcustomerName}`;
     }
     if (lastName) user.lastName = lastName;
 
@@ -256,6 +256,7 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
         }
     } else {
         user.profileImage = user.profileImage;
+        console.log(req.file,"req file ??")
     }
 
     user.fullName = (firstName || user.firstName) + ' ' + (lastName || user.lastName);
