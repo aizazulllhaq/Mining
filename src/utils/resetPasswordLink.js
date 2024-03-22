@@ -19,19 +19,19 @@ const SendResetPasswordOTP = (userEmail, OTP) => {
         from: process.env.EMAIL,
         to: userEmail,
         subject: "Reset Password OTP",
-        html: `Dear User,
-
-        We received a request to reset your password for your account with xyz.com. To proceed with the password reset, please use the following One-Time Password (OTP):
-        
-        OTP: ${OTP}
-        
-        Please enter this OTP in the password reset form to set a new password for your account. This OTP is valid for a limited time only.
-        
-        If you did not request this password reset or have any concerns about your account security, please ignore this email or contact our support team immediately.
-        
-        Thank you for choosing [Your Company Name].
-        
-        Best regards,
+        html: `Dear User,<br>
+        <br>
+        We received a request to reset your password for your account with xyz.com. To proceed with the password reset, please use the following One-Time Password (OTP):<br>
+        <br>
+        OTP: ${OTP}<br>
+        <br>
+        Please enter this OTP in the password reset form to set a new password for your account. This OTP is valid for a limited time only.<br>
+        <br>
+        If you did not request this password reset or have any concerns about your account security, please ignore this email or contact our support team immediately.<br>
+        <br>
+        Thank you for choosing xyz.com.<br>
+        <br>
+        Best regards,<br>
         xyz.com Team`
     };
 

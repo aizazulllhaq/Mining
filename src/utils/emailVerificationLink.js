@@ -19,19 +19,19 @@ const SendEmailVerificationOTP = (userEmail, OTP) => {
         from: process.env.EMAIL,
         to: userEmail,
         subject: "Email verification OTP",
-        html: `Dear User,
-
+        html: `Dear User,<br>
+        <br>
         Thank you for registering with xyz.com. To complete your registration and verify your email address, please use the following One-Time Password (OTP):
-        
-        OTP: ${OTP}
-        
-        Please enter this OTP in the verification form to confirm your email address. This OTP is valid for a limited time only.
-        
-        If you did not request this OTP or have any concerns about your account security, please ignore this email or contact our support team immediately.
-        
-        Thank you for choosing [Your Company Name].
-        
-        Best regards,
+        <br>
+        OTP: ${OTP}<br>
+        <br>
+        Please enter this OTP in the verification form to confirm your email address. This OTP is valid for a limited time only.<br>
+        <br>
+        If you did not request this OTP or have any concerns about your account security, please ignore this email or contact our support team immediately.<br>
+        <br>
+        Thank you for choosing xyz.com.<br>
+        <br>
+        Best regards,<br>
         xyz.com Team`
     };
 
