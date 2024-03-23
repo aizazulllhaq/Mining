@@ -31,7 +31,20 @@ const getEmailToVerify = wrapAsync(async (req, res, next) => {
 
     const token = generateJWTTokenForEmailVerification(email);
 
-    if (user) return res.status(200).json(new ApiResponse(true, "User with this email already exists", token))
+    if (user) {
+        const OTP = generateOTP();
+
+        SendEmailVerificationOTP(email, OTP);
+
+        user.otp = OTP;
+        await user.save();
+
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(true, "User with this email already exists, OTP is sent please verify it ", token)
+            )
+    }
 
     const OTP = generateOTP();
 
@@ -39,56 +52,60 @@ const getEmailToVerify = wrapAsync(async (req, res, next) => {
 
     const newUser = new User({ email });
     newUser.otp = OTP;
-    const createdUser = await newUser.save();
+    await newUser.save();
 
     return res
         .status(200)
         .json(
-            new ApiResponse(true, "OTP has been sent please verity it", token)
+            new ApiResponse(true, "User Created && OTP has been sent please verity it", token)
         )
 });
 
 const verifyEmailAndSetUserDocument = wrapAsync(async (req, res, next) => {
 
-    const { OTP, newPassword, confirmPassword } = req.body;
+    try {
+        const { OTP, newPassword, confirmPassword } = req.body;
 
-    if (!OTP) return next(new ApiError(400, "OTP must be required"));
-    if (!(newPassword && confirmPassword)) return next(new ApiError(400, "Password & Confirm Password is required"));
+        if (!OTP) return next(new ApiError(400, "OTP must be required"));
+        if (!(newPassword && confirmPassword)) return next(new ApiError(400, "Password & Confirm Password is required"));
 
-    const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
 
-    if (!token) return next(new ApiError(404, "Access Token Not Found"));
+        if (!token) return next(new ApiError(404, "Access Token Not Found"));
 
-    const decodeToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const decodeToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-    if (!decodeToken) return next(new ApiError(400, "Invalid Access Token"));
+        if (!decodeToken) return next(new ApiError(400, "Invalid Access Token"));
 
-    const user = await User.findOne({ email: decodeToken.email });
+        const user = await User.findOne({ email: decodeToken.email });
 
-    if (!user) return next(new ApiError(404, "User Not Found"));
+        if (!user) return next(new ApiError(404, "User Not Found"));
 
-    if (user.otp !== OTP) return next(new ApiError(400, "Invalid OTP"));
+        if (user.otp !== OTP) return next(new ApiError(400, "Invalid OTP"));
 
-    if (newPassword !== confirmPassword) return next(new ApiError(400, "New & Confirm password not match"));
+        if (newPassword !== confirmPassword) return next(new ApiError(400, "New & Confirm password not match"));
 
-    // After the above validation when everything is Clear
-    const randomReferredCode = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(8, '0');
+        // After the above validation when everything is Clear
+        const randomReferredCode = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(8, '0');
 
-    user.password = newPassword;
-    user.is_verified = true;
-    user.referredCode = randomReferredCode;
+        user.password = newPassword;
+        user.is_verified = true;
+        user.referredCode = randomReferredCode;
 
-    const createdUser = await user.save();
+        const createdUser = await user.save();
 
-    const accessToken = await createdUser.generateAccessToken();
+        const accessToken = await createdUser.generateAccessToken();
 
-    if (!createdUser) return next(new ApiError(400, "Something went wrong while registering new user !!"));
+        if (!createdUser) return next(new ApiError(400, "Something went wrong while registering new user !!"));
 
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(true, "User Registerd Successfully", { createdUser, accessToken })
-        )
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(true, "User Registerd Successfully", { createdUser, accessToken })
+            )
+    } catch (err) {
+        return res.status(400).json(new ApiResponse(false, err.message, {}))
+    }
 });
 
 
