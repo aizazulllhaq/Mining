@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken'
 import { SendEmailVerificationOTP } from "../utils/emailVerificationLink.js";
 import { SendResetPasswordOTP } from "../utils/resetPasswordLink.js";
 import generateJWTTokenForEmailVerification from "../utils/generateJWTForEmailVerification.js";
+import path from "path";
 
 
 
@@ -30,7 +31,7 @@ const getEmailToVerify = wrapAsync(async (req, res, next) => {
 
     const token = generateJWTTokenForEmailVerification(email);
 
-    if (user) return res.status(200).json(new ApiResponse(true, "User with this email already exists", token    ))
+    if (user) return res.status(200).json(new ApiResponse(true, "User with this email already exists", token))
 
     const OTP = generateOTP();
 
@@ -249,14 +250,14 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
     }
     if (lastName) user.lastName = lastName;
 
+
     if (req.file) {
-        const response = await uploadFileOnLocalAndCloudinary(req.file.path)
+        const response = await uploadFileOnLocalAndCloudinary(req.file?.path)
         if (response) {
             user.profileImage = response.url;
         }
     } else {
         user.profileImage = user.profileImage;
-        console.log(req.file,"req file ??")
     }
 
     user.fullName = (firstName || user.firstName) + ' ' + (lastName || user.lastName);

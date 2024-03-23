@@ -1,26 +1,28 @@
 import ApiError from "../utils/ApiError.js";
 import jwt from 'jsonwebtoken'
 
-const checkForAuthentication = async (req, _, next) => {
+const checkForAuthentication = (req, _, next) => {
+
+    const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
+
+    if (!token) {
+        req.user = null;
+        return next();
+    }
 
     try {
-        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
-
-        if (!token) {
-            req.user = null;
-            return next();
-        }
-
-        const user = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
         if (!user) return next(new ApiError(400, "Invalid accessToken"));
 
         req.user = user;
 
         next();
+
     } catch (err) {
-        return next(new ApiError(400, "Access Token is Expired"));
+        next();
     }
+
 }
 
 const restrictFromSecureRotues = (role = []) => {
