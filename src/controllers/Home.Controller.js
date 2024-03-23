@@ -9,14 +9,13 @@ const applyAnotherUserReferredCodeToDoMining = wrapAsync(async (req, res, next) 
 
     if (!referrelCode) return next(new ApiError(404, "Referred Code Not Found"));
 
-    const currentUser = await User.findById({ _id: req.user?.id });
+    const currentUser = await User.findById(req.user?._id);
     const level1User = await User.findOne({ referredCode: referrelCode });
 
     if (!level1User) return next(new ApiError(404, "User Not Found"));
 
     // IF USER FOUND : 
     level1User.directReferred.push(currentUser.referredCode);
-    currentUser.referredBy = level1User.referredCode;
 
     await currentUser.save();
     await level1User.save();
@@ -24,7 +23,7 @@ const applyAnotherUserReferredCodeToDoMining = wrapAsync(async (req, res, next) 
     if (level1User.referredBy) {
         const level2User = await User.findOne({ referredCode: level1User.referredBy });
         if (level2User) {
-            level2User.indirectReffered.push(level1User.referredCode);
+            level2User.indirectReffered.push(currentUser.referredCode);
             await level2User.save();
         }
     }
@@ -42,7 +41,7 @@ const tapMining = wrapAsync(async (req, res, next) => {
 
     // updating the user .
     const updatedUser = await User.findByIdAndUpdate(
-        { _id: req.user?.id },
+        { _id: req.user?._id },
         {
             $set: {
                 miningStatus: true,
@@ -59,7 +58,7 @@ const tapMining = wrapAsync(async (req, res, next) => {
         let incrementPointLevel = 1.03;
 
         // Direct Referred Increment
-        const user = await User.findById(req.user?.id);
+        const user = await User.findById(req.user?._id);
         if (user) {
             if (user.directReferred.length > 0) {
 
@@ -91,7 +90,7 @@ const tapMining = wrapAsync(async (req, res, next) => {
         }
 
         await User.findByIdAndUpdate(
-            { _id: req.user?.id },
+            { _id: req.user?._id },
             {
                 $set: {
                     miningStatus: false,
@@ -151,7 +150,7 @@ const leaderBoard = wrapAsync(async (req, res, next) => {
 
 const generateReferrelURL = wrapAsync(async (req, res, next) => {
 
-    const user = await User.findById(req.user?.id);
+    const user = await User.findById(req.user?._id);
 
     const referrelURL = `${process.env.SERVER_URL}/api/v1/users/register?referredCode=${user.referredCode}`;
 

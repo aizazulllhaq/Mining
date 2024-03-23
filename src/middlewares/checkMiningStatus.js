@@ -3,7 +3,7 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 
 const checkMiningStatus = async (req, res, next) => {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user?._id);
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 

@@ -24,6 +24,9 @@ const UserSchema = new Schema({
         required: [true, "Email is required"],
         unique: true,
     },
+    googleId:{
+        type:String,
+    },
     password: {
         type: String,
     },
@@ -116,16 +119,16 @@ UserSchema.methods.isPasswordCorrect = async function (password) {
     // return -> true , false
 }
 
-UserSchema.methods.generateAccessToken = async function () {
+UserSchema.methods.generateAccessToken = function () {
 
     const payload = {
-        id: this._id,
+        _id: this._id,
         email: this.email,
         is_verified: this.is_verified,
         role: this.role
     }
 
-    const token = await jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET,
+    const token = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET,
         {
             expiresIn: process.env.ACCESS_TOKEN_EXPIRY
         });

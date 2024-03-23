@@ -9,7 +9,6 @@ import jwt from 'jsonwebtoken'
 import { SendEmailVerificationOTP } from "../utils/emailVerificationLink.js";
 import { SendResetPasswordOTP } from "../utils/resetPasswordLink.js";
 import generateJWTTokenForEmailVerification from "../utils/generateJWTForEmailVerification.js";
-import path from "path";
 
 
 
@@ -39,7 +38,7 @@ const getEmailToVerify = wrapAsync(async (req, res, next) => {
 
     const newUser = new User({ email });
     newUser.otp = OTP;
-    const createdUser = await newUser.save();
+    await newUser.save();
 
     return res
         .status(200)
@@ -224,7 +223,7 @@ const verifyOTPAndSetNewPassword = wrapAsync(async (req, res, next) => {
 
 // Secure Controller's
 const userSetProfilePage = wrapAsync(async (req, res, next) => {
-    const user = await User.findById(req.user.id).select("-password -rp_token -token");
+    const user = await User.findById(req.user?._id).select("-password -rp_token -token");
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
@@ -237,7 +236,7 @@ const userSetProfilePage = wrapAsync(async (req, res, next) => {
 
 
 const userSetProfile = wrapAsync(async (req, res, next) => {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user?._id);
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
@@ -247,6 +246,8 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
         const randomcustomerName = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(5, '0');
         user.firstName = firstName;
         user.username = `${firstName}_${randomcustomerName}`;
+    }else{
+        user.username = `unknown_${randomcustomerName}`
     }
     if (lastName) user.lastName = lastName;
 
@@ -275,7 +276,7 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
 
 
 const userProfile = wrapAsync(async (req, res, next) => {
-    const user = await User.findById(req.user.id).select("-password -rp_token -token");
+    const user = await User.findById(req.user?._id).select("-password -rp_token -token");
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
