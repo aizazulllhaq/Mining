@@ -4,38 +4,127 @@ import ApiResponse from "../utils/ApiResponse.js";
 import wrapAsync from "../utils/wrapAsync.js";
 
 
-const applyAnotherUserReferredCodeToDoMining = wrapAsync(async (req, res, next) => {
-    const { referrelCode } = req.body;
 
-    if (!referrelCode) return next(new ApiError(404, "Referred Code Not Found"));
+// Dashboard Page 
+const dashboard = wrapAsync(async (req, res, next) => {
 
-    const currentUser = await User.findById({ _id: req.user?.id });
-    const level1User = await User.findOne({ referredCode: referrelCode });
+    // Only get ( seaCoins , miningPower , miningStatus , activeReferredUsers or Active Network )
+    const user = await User.findById(req.user?.id).select("-firstName -lastName -username -fullName -email -password -is_verified -rp_otp -otp -role -profileImage -gender -country -seaPearl -referredBy -referredCode -lastMiningTime -createdAt -updatedAt");
 
-    if (!level1User) return next(new ApiError(404, "User Not Found"));
+    if (!user) return next(new ApiError(404, "User Not Found"));
 
-    // IF USER FOUND : 
-    level1User.directReferred.push(currentUser.referredCode);
-    currentUser.referredBy = level1User.referredCode;
+    let activeReferredUsers = 0;
 
-    await currentUser.save();
-    await level1User.save();
+    if (user.directReferred.length > 0) {
 
-    if (level1User.referredBy) {
-        const level2User = await User.findOne({ referredCode: level1User.referredBy });
-        if (level2User) {
-            level2User.indirectReffered.push(level1User.referredCode);
-            await level2User.save();
+        await Promise.all(user.directReferred.map(async (directReferredCode) => {
+            const directReferredUser = await User.findOne({ referredBy: directReferredCode });
+
+            if (directReferredUser) {
+                if (directReferredUser.is_verified) {
+                    if (directReferredUser.miningStatus) {
+                        activeReferredUsers += activeReferredUsers + 1
+                    }
+                }
+            }
+        }));
+
+        if (user.indirectReffered.length > 0) {
+
+            await Promise.all(user.indirectReffered.map(async (indirectReferredCode) => {
+                const indirectReferredUser = await User.findOne({ referredBy: indirectReferredCode });
+
+                if (indirectReferredUser) {
+                    if (indirectReferredUser.is_verified) {
+                        if (indirectReferredUser.miningStatus) {
+                            activeReferredUsers += activeReferredUsers + 1
+                        }
+                    }
+                }
+            }));
+        }
+
+    }
+
+    const { seaCoin, milestone, miningStatus, miningPower } = user;
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                true,
+                "User Dashboard",
+                {
+                    seaCoin: seaCoin,
+                    milestone: milestone,
+                    miningStatus: miningStatus,
+                    miningPower: miningPower,
+                    activeNetwork: activeReferredUsers
+                }
+            )
+        )
+
+});
+
+
+// Teams ( Total Members ( direct + indirect Referred ) direct-members)
+const teams = wrapAsync(async (req, res, next) => {
+
+    const user = await User.findById(req.user?.id);
+
+    if (!user) return next(new ApiError(404, "User Not Found"));
+
+    let totalDirectReferred;
+    let directAndIndirectReferred;
+    let directAndIndirectReferredUsersNames = [];
+
+    if (user.directReferred) {
+        totalDirectReferred = user.directReferred.length;
+        if (user.indirectReffered) {
+            directAndIndirectReferred = (user.directReferred.length + user.indirectReffered.length)
+
+            await Promise.all(user.directReferred.map(async (directReferredCode) => {
+                const directReferredUser = await User.findOne({ referredBy: directReferredCode });
+                if (directReferredUser) {
+                    directAndIndirectReferredUsersNames.push({
+                        userName: directReferredUser.username,
+                        referred: "Direct",
+                        miningStatus: directReferredUser.miningStatus
+                    });
+                }
+            }));
+
+            await Promise.all(user.indirectReffered.map(async (indirectReferredCode) => {
+                const indirectReferredUser = await User.findOne({ referredCode: indirectReferredCode });
+                if (indirectReferredUser) {
+                    directAndIndirectReferredUsersNames.push({
+                        userName: indirectReferredUser.username,
+                        referred: "Indirect",
+                        miningStatus: indirectReferredUser.miningStatus
+                    });
+                }
+            }));
         }
     }
 
     return res
         .status(200)
         .json(
-            new ApiResponse(true, "Referrel Code is Valid . You are good to go to Mine Coins")
+            new ApiResponse(
+                true,
+                "User Direct & Indirect Members with Names",
+                {
+                    totalDirectReferredUser: totalDirectReferred,
+                    directAndIndirectReferredUser: directAndIndirectReferred,
+                    totalDirectAndIndirectReferredUsersNames: directAndIndirectReferredUsersNames
+                }
+            )
         )
+
 });
 
+
+// Changing Mining Status & Increment seaCoins
 const tapMining = wrapAsync(async (req, res, next) => {
     // creating current timestamp , to check in again mining time is the mining 12 hours completed or Not
     const currentTime = Date.now();
@@ -48,7 +137,7 @@ const tapMining = wrapAsync(async (req, res, next) => {
                 miningStatus: true,
                 lastMiningTime: currentTime,
             }
-        }).select("-password -token -rp_token -_id");
+        }).select("-firstName -lastName -password -is_verified -rp_otp -otp -role -profileImage -gender -country -seaPearl -referredBy -referredCode -directReferrred -indirectReferred -createdAt -updatedAt");
 
     // checking the updatedUser Updation
     if (!updatedUser) return next(new ApiError(404, "User Not Found"));
@@ -73,21 +162,24 @@ const tapMining = wrapAsync(async (req, res, next) => {
                         }
                     }
                 }))
-            }
 
-            // Indirect Referred Increment
-            if (user.indirectReffered.length > 0) {
 
-                // Interating Indirect Referred Users
-                await Promise.all(user.indirectReffered.map(async (indirectReferredUser) => {
-                    const verifyIndirectReferrerdUser = await User.findOne({ referredCode: indirectReferredUser });
-                    if (verifyIndirectReferrerdUser.is_verified) {
-                        if (verifyIndirectReferrerdUser.miningStatus) {
-                            incrementPointLevel += incrementPointLevel * 0.7
+                // Indirect Referred Increment
+                if (user.indirectReffered.length > 0) {
+
+                    // Interating Indirect Referred Users
+                    await Promise.all(user.indirectReffered.map(async (indirectReferredUser) => {
+                        const verifyIndirectReferrerdUser = await User.findOne({ referredCode: indirectReferredUser });
+                        if (verifyIndirectReferrerdUser.is_verified) {
+                            if (verifyIndirectReferrerdUser.miningStatus) {
+                                incrementPointLevel += incrementPointLevel * 0.7
+                            }
                         }
-                    }
-                }))
+                    }))
+                }
+
             }
+
         }
 
         await User.findByIdAndUpdate(
@@ -95,7 +187,8 @@ const tapMining = wrapAsync(async (req, res, next) => {
             {
                 $set: {
                     miningStatus: false,
-                    lastMiningTime: 0
+                    lastMiningTime: 0,
+                    miningPower: incrementPointLevel,
                 },
                 $inc: {
                     seaCoin: incrementPointLevel
@@ -167,6 +260,7 @@ export {
     tapMining,
     leaderBoard,
     generateReferrelURL,
-    applyAnotherUserReferredCodeToDoMining
+    dashboard,
+    teams
 }
 

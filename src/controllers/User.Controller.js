@@ -24,6 +24,7 @@ const getEmailPage = (_, res) => {
 const getEmailToVerify = wrapAsync(async (req, res, next) => {
 
     const { email } = req.body;
+    const { referredCode } = req.query;
 
     if (!email) return next(new ApiError(400, "Email is Required"));
 
@@ -50,8 +51,44 @@ const getEmailToVerify = wrapAsync(async (req, res, next) => {
 
     SendEmailVerificationOTP(email, OTP);
 
+    // After the above validation when everything is Clear
+    const randomReferredCode = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(8, '0');
+
     const newUser = new User({ email });
     newUser.otp = OTP;
+    newUser.referredCode = randomReferredCode;
+    newUser.username = `guest_${randomReferredCode}`;
+
+
+
+    if (referredCode) {
+        const level0User = await User.findOne({ referredCode: referredCode });
+
+        if (level0User) {
+            level0User.directReferred.push(newUser.referredCode);
+            newUser.referredBy = referredCode;
+
+            await level0User.save();
+            await newUser.save();
+
+            if (level0User.referredBy) {
+                const level1User = await User.findOne({ referredCode: level0User.referredBy });
+                console.log(level1User)
+
+                if (level1User) {
+                    level1User.indirectReffered.push(newUser.referredCode);
+                    
+                    await level1User.save();
+                }
+            }
+        }
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(true, "User Created && OTP has been sent please verity it", token)
+            )
+    }
+
     await newUser.save();
 
     return res
@@ -85,12 +122,8 @@ const verifyEmailAndSetUserDocument = wrapAsync(async (req, res, next) => {
 
         if (newPassword !== confirmPassword) return next(new ApiError(400, "New & Confirm password not match"));
 
-        // After the above validation when everything is Clear
-        const randomReferredCode = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(8, '0');
-
         user.password = newPassword;
         user.is_verified = true;
-        user.referredCode = randomReferredCode;
 
         const createdUser = await user.save();
 
@@ -101,7 +134,7 @@ const verifyEmailAndSetUserDocument = wrapAsync(async (req, res, next) => {
         return res
             .status(200)
             .json(
-                new ApiResponse(true, "User Registerd Successfully", { createdUser, accessToken })
+                new ApiResponse(true, "User Emai has been verified Successfully", accessToken)
             )
     } catch (err) {
         return res.status(400).json(new ApiResponse(false, err.message, {}))
@@ -137,20 +170,16 @@ const Login = wrapAsync(async (req, res, next) => {
 
     if (!isPasswordValid) return next(new ApiError(401, "Invalid Credentials"));
 
-
     // set or access-token & refresh-token 
     const accessToken = await user.generateAccessToken();
-
-    // remove refresh-token from response 
-    const loggedInUser = await User.findById(user._id).select("-password -token");
 
     return res
         .status(200)
         .json(
             new ApiResponse(
                 true,
-                "Login Successfull",
-                { loggedInUser, accessToken }
+                "Login Successfull Here is your Access Token",
+                accessToken
             )
         )
 });
@@ -241,7 +270,8 @@ const verifyOTPAndSetNewPassword = wrapAsync(async (req, res, next) => {
 
 // Secure Controller's
 const userSetProfilePage = wrapAsync(async (req, res, next) => {
-    const user = await User.findById(req.user.id).select("-password -rp_token -token");
+
+    const user = await User.findById(req.user?.id).select("-password -rp_token -token -otp -rp_otp");
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
@@ -263,8 +293,9 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
     if (firstName) {
         const randomcustomerName = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(5, '0');
         user.firstName = firstName;
-        user.username = `${firstName}_${randomcustomerName}`;
+        user.username = `${firstName.trim()}_${randomcustomerName}`;
     }
+
     if (lastName) user.lastName = lastName;
 
 
@@ -286,13 +317,13 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
     return res
         .status(200)
         .json(
-            new ApiResponse(true, "User Profile Updated", updatedUser)
+            new ApiResponse(true, "User Profile Updated", {})
         )
 });
 
 
 const userProfile = wrapAsync(async (req, res, next) => {
-    const user = await User.findById(req.user.id).select("-password -rp_token -token");
+    const user = await User.findById(req.user.id).select("-password -rp_token -token -otp -rp_otp -firstName -lastName -createdAt -updatedAt");
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
