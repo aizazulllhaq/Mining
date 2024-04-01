@@ -51,7 +51,7 @@ const UserSchema = new Schema({
     gender: {
         type: String,
         enum: ["Male", "Female", "Other"],
-        default: null,
+        default: "",
     },
     country: {
         type: String,
