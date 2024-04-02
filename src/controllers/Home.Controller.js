@@ -75,13 +75,13 @@ const teams = wrapAsync(async (req, res, next) => {
     if (!user) return next(new ApiError(404, "User Not Found"));
 
     let totalDirectReferred;
-    let directAndIndirectReferred;
+    let totalDirectAndIndirectReferred;
     let directAndIndirectReferredUsersNames = [];
 
     if (user.directReferred) {
         totalDirectReferred = user.directReferred.length;
         if (user.indirectReffered) {
-            directAndIndirectReferred = (user.directReferred.length + user.indirectReffered.length)
+            totalDirectAndIndirectReferred = (user.directReferred.length + user.indirectReffered.length)
 
             await Promise.all(user.directReferred.map(async (directReferredCode) => {
                 const directReferredUser = await User.findOne({ referredBy: directReferredCode });
@@ -115,7 +115,7 @@ const teams = wrapAsync(async (req, res, next) => {
                 "User Direct & Indirect Members with Names",
                 {
                     totalDirectReferredUser: totalDirectReferred,
-                    directAndIndirectReferredUser: directAndIndirectReferred,
+                    totalDirectAndIndirectReferredUser: totalDirectAndIndirectReferred,
                     totalDirectAndIndirectReferredUsersNames: directAndIndirectReferredUsersNames
                 }
             )
@@ -194,14 +194,14 @@ const tapMining = wrapAsync(async (req, res, next) => {
                     seaCoin: incrementPointLevel
                 }
             });
-        console.log("Mining Status Reset after 12 hours");
+        // console.log("Mining Status Reset after 12 hours");
     }, 10000) // 12 * 60 * 60 * 1000 = 12 hours &  60 * 1000 = 1 minute
 
     // return response with updatedUser
     return res
         .status(200)
         .json(
-            new ApiResponse(true, "Mining Started , you can mine after 12 hours", updatedUser)
+            new ApiResponse(true, "Mining Started , you can mine once the current mine will be completed", updatedUser)
         )
 });
 
