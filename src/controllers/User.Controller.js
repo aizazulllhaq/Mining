@@ -77,7 +77,7 @@ const getEmailToVerify = wrapAsync(async (req, res, next) => {
 
                 if (level1User) {
                     level1User.indirectReffered.push(newUser.referredCode);
-                    
+
                     await level1User.save();
                 }
             }
@@ -288,7 +288,7 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
-    const { firstName, lastName, country, gender } = req.body;
+    const { firstName, lastName, country, gender, phoneNumber } = req.body;
 
     if (firstName) {
         const randomcustomerName = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(5, '0');
@@ -311,8 +311,10 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
     user.fullName = (firstName || user.firstName) + ' ' + (lastName || user.lastName);
     user.country = (country || user.country);
     user.gender = (gender || user.gender);
+    user.phoneNumber = (phoneNumber || user.phoneNumber)
 
-    const updatedUser = await user.save({ validateBeforeSave: false });
+
+    await user.save({ validateBeforeSave: false });
 
     return res
         .status(200)
