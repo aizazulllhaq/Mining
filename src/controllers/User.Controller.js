@@ -325,7 +325,7 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
 
 
 const userProfile = wrapAsync(async (req, res, next) => {
-    const user = await User.findById(req.user.id).select("-password -otp -rp_otp -referredBy -directReferred -indirectReferred -createdAt -updatedAt -role -is_verified");
+    const user = await User.findById(req.user.id).select("-firstName -lastName -password -is_verified -rp_otp -otp -role -gender -country -seaPearl -referredBy -directReferred -indirectReferred -createdAt -updatedAt -username -milestone -miningStatus -lastMiningTime -seaCoin -_id -miningPower -indirectReffered -__v");
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
