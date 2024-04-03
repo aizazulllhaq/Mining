@@ -154,13 +154,16 @@ const tapMining = wrapAsync(async (req, res, next) => {
 
                 // Interating Direct Referred Users
                 // NOTE !! map execute asyncronously , to wait for all the iteration we need to use ( await Promise.all )
-                await Promise.all(user.directReferred.map(async (directReferredUser) => {
-                    const verifyDirectReferredUser = await User.findOne({ referredCode: directReferredUser });
-                    if (verifyDirectReferredUser.is_verified) {
-                        if (verifyDirectReferredUser.miningStatus) {
-                            incrementPointLevel += incrementPointLevel * 1.03;
+                await Promise.all(user.directReferred.map(async (directReferredCode) => {
+                    const verifyDirectReferredUser = await User.findOne({ referredCode: directReferredCode });
+                    if (verifyDirectReferredUser) {
+                        if (verifyDirectReferredUser.is_verified) {
+                            if (verifyDirectReferredUser.miningStatus) {
+                                incrementPointLevel += incrementPointLevel * 1.03;
+                            }
                         }
                     }
+
                 }))
 
 
@@ -168,13 +171,16 @@ const tapMining = wrapAsync(async (req, res, next) => {
                 if (user.indirectReferred.length > 0) {
 
                     // Interating Indirect Referred Users
-                    await Promise.all(user.indirectReferred.map(async (indirectReferredUser) => {
-                        const verifyIndirectReferrerdUser = await User.findOne({ referredCode: indirectReferredUser });
-                        if (verifyIndirectReferrerdUser.is_verified) {
-                            if (verifyIndirectReferrerdUser.miningStatus) {
-                                incrementPointLevel += incrementPointLevel * 0.7
+                    await Promise.all(user.indirectReferred.map(async (indirectReferredCode) => {
+                        const verifyIndirectReferrerdUser = await User.findOne({ referredCode: indirectReferredCode });
+                        if (verifyIndirectReferrerdUser) {
+                            if (verifyIndirectReferrerdUser.is_verified) {
+                                if (verifyIndirectReferrerdUser.miningStatus) {
+                                    incrementPointLevel += incrementPointLevel * 0.7
+                                }
                             }
                         }
+
                     }))
                 }
 
@@ -193,20 +199,21 @@ const tapMining = wrapAsync(async (req, res, next) => {
                 $inc: {
                     seaCoin: incrementPointLevel
                 }
-            });
-        // console.log("Mining Status Reset after 12 hours");
+            })
+        // .select("-firstName -lastName -password -is_verified -rp_otp -otp -role -gender -country -seaPearl -referredBy -directReferred -indirectReferred -createdAt -updatedAt -username -milestone -_id -indirectReffered -__v");
+
     }, 10000) // 12 * 60 * 60 * 1000 = 12 hours &  60 * 1000 = 1 minute
 
     // return response with updatedUser
     return res
         .status(200)
         .json(
-            new ApiResponse(true, "Mining Started , you can mine once the current mine will be completed", updatedUser)
+            new ApiResponse(true, "Mining Started , you can mine once the current mine will be completed", {})
         )
 });
 
 
-const leaderBoard = wrapAsync(async (req, res, next) => {
+const leaderBoard = wrapAsync(async (_, res, next) => {
 
     // Top 3 Users on Leader-Board
     const topThreeUsers = await User.aggregate([

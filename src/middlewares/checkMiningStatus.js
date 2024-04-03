@@ -10,6 +10,7 @@ const checkMiningStatus = async (req, res, next) => {
     if (user.miningStatus) {
         const currentTime = Date.now();
 
+        // user.lastMiningTime = 12 hours after the currentTime when user click on tapMining
         const lastMiningTime = user.lastMiningTime || currentTime;
 
         const timeDifference = currentTime - lastMiningTime;
