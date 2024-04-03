@@ -11,10 +11,10 @@ import { checkMiningStatus } from "../middlewares/checkMiningStatus.js";
 const homeRouter = Router();
 
 homeRouter
+    .get("/", dashboard)
+    .get("/teams", teams)
     .get("/mining", checkMiningStatus, tapMining)
     .get("/leaderBoard", leaderBoard)
     .get("/referrelURL", generateReferrelURL)
-    .get("/", dashboard)
-    .get("/teams", teams)
 
 export default homeRouter;

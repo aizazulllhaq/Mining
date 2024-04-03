@@ -89,7 +89,7 @@ const UserSchema = new Schema({
             default: null,
         }
     ],
-    indirectReffered: [
+    indirectReferred: [
         {
             type: Number,
             default: null,

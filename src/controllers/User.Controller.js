@@ -76,7 +76,7 @@ const getEmailToVerify = wrapAsync(async (req, res, next) => {
                 console.log(level1User)
 
                 if (level1User) {
-                    level1User.indirectReffered.push(newUser.referredCode);
+                    level1User.indirectReferred.push(newUser.referredCode);
 
                     await level1User.save();
                 }
@@ -271,7 +271,7 @@ const verifyOTPAndSetNewPassword = wrapAsync(async (req, res, next) => {
 // Secure Controller's
 const userSetProfilePage = wrapAsync(async (req, res, next) => {
 
-    const user = await User.findById(req.user?.id).select("-password -rp_token -token -otp -rp_otp");
+    const user = await User.findById(req.user?.id).select("-password -otp -rp_otp -is_verified -role -referredBy -directReferrred -indirectReferred -createdAt -updatedAt");
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
@@ -325,7 +325,7 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
 
 
 const userProfile = wrapAsync(async (req, res, next) => {
-    const user = await User.findById(req.user.id).select("-password -rp_token -token -otp -rp_otp -firstName -lastName -createdAt -updatedAt");
+    const user = await User.findById(req.user.id).select("-password -otp -rp_otp -referredBy -directReferred -indirectReferred -createdAt -updatedAt -role -is_verified");
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 

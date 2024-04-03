@@ -29,9 +29,9 @@ const dashboard = wrapAsync(async (req, res, next) => {
             }
         }));
 
-        if (user.indirectReffered.length > 0) {
+        if (user.indirectReferred.length > 0) {
 
-            await Promise.all(user.indirectReffered.map(async (indirectReferredCode) => {
+            await Promise.all(user.indirectReferred.map(async (indirectReferredCode) => {
                 const indirectReferredUser = await User.findOne({ referredBy: indirectReferredCode });
 
                 if (indirectReferredUser) {
@@ -80,8 +80,8 @@ const teams = wrapAsync(async (req, res, next) => {
 
     if (user.directReferred) {
         totalDirectReferred = user.directReferred.length;
-        if (user.indirectReffered) {
-            totalDirectAndIndirectReferred = (user.directReferred.length + user.indirectReffered.length)
+        if (user.indirectReferred) {
+            totalDirectAndIndirectReferred = (user.directReferred.length + user.indirectReferred.length)
 
             await Promise.all(user.directReferred.map(async (directReferredCode) => {
                 const directReferredUser = await User.findOne({ referredBy: directReferredCode });
@@ -94,7 +94,7 @@ const teams = wrapAsync(async (req, res, next) => {
                 }
             }));
 
-            await Promise.all(user.indirectReffered.map(async (indirectReferredCode) => {
+            await Promise.all(user.indirectReferred.map(async (indirectReferredCode) => {
                 const indirectReferredUser = await User.findOne({ referredCode: indirectReferredCode });
                 if (indirectReferredUser) {
                     directAndIndirectReferredUsersNames.push({
@@ -165,10 +165,10 @@ const tapMining = wrapAsync(async (req, res, next) => {
 
 
                 // Indirect Referred Increment
-                if (user.indirectReffered.length > 0) {
+                if (user.indirectReferred.length > 0) {
 
                     // Interating Indirect Referred Users
-                    await Promise.all(user.indirectReffered.map(async (indirectReferredUser) => {
+                    await Promise.all(user.indirectReferred.map(async (indirectReferredUser) => {
                         const verifyIndirectReferrerdUser = await User.findOne({ referredCode: indirectReferredUser });
                         if (verifyIndirectReferrerdUser.is_verified) {
                             if (verifyIndirectReferrerdUser.miningStatus) {
