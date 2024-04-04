@@ -263,11 +263,58 @@ const generateReferrelURL = wrapAsync(async (req, res, next) => {
 });
 
 
+const useAnotherUserReferredCode = wrapAsync(async (req, res, next) => {
+
+    const { referrelCode } = req.body;
+
+    if (!referrelCode) return next(new ApiError(404, "Referrel Code Must be required"));
+
+    const user = await User.findById(req.user?.id);
+
+    if (!user) return next(new ApiError(404, "User Not Found"));
+
+    const level1User = await User.findOne({ referredCode: referrelCode });
+
+    if (level1User) {
+
+        user.referredBy = referrelCode;
+
+        level1User.directReferred.push(user.referredCode);
+
+        await user.save();
+        await level1User.save();
+
+        if (level1User.referredBy) {
+
+            const level0User = await User.findOne({ referredCode: level1User.referredBy });
+
+            if (level0User) {
+
+                level0User.indirectReferred.push(user.referredCode);
+                
+                await level0User.save();
+            }
+        }
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                true,
+                "Referrel Code Added Successfully",
+                {}
+            )
+        )
+});
+
+
 export {
     tapMining,
     leaderBoard,
     generateReferrelURL,
     dashboard,
-    teams
+    teams,
+    useAnotherUserReferredCode,
 }
 
