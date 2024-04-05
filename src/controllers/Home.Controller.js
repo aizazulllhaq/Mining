@@ -9,7 +9,7 @@ import wrapAsync from "../utils/wrapAsync.js";
 const dashboard = wrapAsync(async (req, res, next) => {
 
     // Only get ( seaCoins , miningPower , miningStatus , activeReferredUsers or Active Network )
-    const user = await User.findById(req.user?.id).select("-firstName -lastName -username -fullName -email -password -is_verified -rp_otp -otp -role -profileImage -gender -country -seaPearl -referredBy -referredCode -lastMiningTime -createdAt -updatedAt");
+    const user = await User.findById(req.user?.id).select("seaCoin milestone miningStatus lastMiningTime directReferred indirectReferred -_id");
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
@@ -46,7 +46,10 @@ const dashboard = wrapAsync(async (req, res, next) => {
 
     }
 
-    const { seaCoin, milestone, miningStatus, miningPower } = user;
+
+
+    const { seaCoin, milestone, miningStatus, lastMiningTime } = user;
+
 
     return res
         .status(200)
@@ -55,11 +58,10 @@ const dashboard = wrapAsync(async (req, res, next) => {
                 true,
                 "User Dashboard",
                 {
-                    seaCoin: seaCoin,
-                    milestone: milestone,
-                    miningStatus: miningStatus,
-                    miningPower: miningPower,
-                    activeNetwork: activeReferredUsers
+                    seaCoin,
+                    milestone,
+                    miningStatus,
+                    lastMiningTime
                 }
             )
         )
@@ -129,64 +131,57 @@ const tapMining = wrapAsync(async (req, res, next) => {
     // creating current timestamp , to check in again mining time is the mining 12 hours completed or Not
     const currentTime = Date.now();
 
-    // updating the user .
-    const updatedUser = await User.findByIdAndUpdate(
+    // get user ( directReferred & indirectReferred ) and updating the user .
+    const level1User = await User.findByIdAndUpdate(
         { _id: req.user?.id },
         {
             $set: {
                 miningStatus: true,
                 lastMiningTime: currentTime,
             }
-        }).select("-firstName -lastName -password -is_verified -rp_otp -otp -role -profileImage -gender -country -seaPearl -referredBy -referredCode -directReferrred -indirectReferred -createdAt -updatedAt");
+        }).select("directReferred indirectReferred -_id miningPower");
 
     // checking the updatedUser Updation
-    if (!updatedUser) return next(new ApiError(404, "User Not Found"));
+    if (!level1User) return next(new ApiError(404, "User Not Found"));
 
     // change mining status to false , after 12 hours
     setTimeout(async () => {
 
-        let incrementPointLevel = 1.03;
+        let incrementPointLevel = level1User.miningPower;
 
         // Direct Referred Increment
-        const user = await User.findById(req.user?.id);
-        if (user) {
-            if (user.directReferred.length > 0) {
+        if (level1User.directReferred.length > 0) {
 
-                // Interating Direct Referred Users
-                // NOTE !! map execute asyncronously , to wait for all the iteration we need to use ( await Promise.all )
-                await Promise.all(user.directReferred.map(async (directReferredCode) => {
-                    const verifyDirectReferredUser = await User.findOne({ referredCode: directReferredCode });
-                    if (verifyDirectReferredUser) {
-                        if (verifyDirectReferredUser.is_verified) {
-                            if (verifyDirectReferredUser.miningStatus) {
-                                incrementPointLevel += incrementPointLevel * 1.03;
+            // Interating Direct Referred Users
+            // NOTE !! map execute asyncronously , to wait for all the iteration we need to use ( await Promise.all )
+            await Promise.all(level1User.directReferred.map(async (directReferredCode) => {
+                const verifyDirectReferredUser = await User.findOne({ referredCode: directReferredCode });
+                if (verifyDirectReferredUser) {
+                    if (verifyDirectReferredUser.is_verified) {
+                        if (verifyDirectReferredUser.miningStatus) {
+                            incrementPointLevel *= 1.03;
+                        }
+                    }
+                }
+            }))
+
+            // Indirect Referred Increment
+            if (level1User.indirectReferred.length > 0) {
+
+                // Interating Indirect Referred Users
+                await Promise.all(level1User.indirectReferred.map(async (indirectReferredCode) => {
+                    const verifyIndirectReferrerdUser = await User.findOne({ referredCode: indirectReferredCode });
+                    if (verifyIndirectReferrerdUser) {
+                        if (verifyIndirectReferrerdUser.is_verified) {
+                            if (verifyIndirectReferrerdUser.miningStatus) {
+                                incrementPointLevel *= 0.7
                             }
                         }
                     }
-
                 }))
-
-
-                // Indirect Referred Increment
-                if (user.indirectReferred.length > 0) {
-
-                    // Interating Indirect Referred Users
-                    await Promise.all(user.indirectReferred.map(async (indirectReferredCode) => {
-                        const verifyIndirectReferrerdUser = await User.findOne({ referredCode: indirectReferredCode });
-                        if (verifyIndirectReferrerdUser) {
-                            if (verifyIndirectReferrerdUser.is_verified) {
-                                if (verifyIndirectReferrerdUser.miningStatus) {
-                                    incrementPointLevel += incrementPointLevel * 0.7
-                                }
-                            }
-                        }
-
-                    }))
-                }
-
             }
-
         }
+
 
         await User.findByIdAndUpdate(
             { _id: req.user?.id },
@@ -194,15 +189,12 @@ const tapMining = wrapAsync(async (req, res, next) => {
                 $set: {
                     miningStatus: false,
                     lastMiningTime: 0,
-                    miningPower: incrementPointLevel,
                 },
                 $inc: {
                     seaCoin: incrementPointLevel
                 }
             })
-        // .select("-firstName -lastName -password -is_verified -rp_otp -otp -role -gender -country -seaPearl -referredBy -directReferred -indirectReferred -createdAt -updatedAt -username -milestone -_id -indirectReffered -__v");
-
-    }, 10000) // 12 * 60 * 60 * 1000 = 12 hours &  60 * 1000 = 1 minute
+    }, 60000) // 12 * 60 * 60 * 1000 = 12 hours &  60 * 1000 = 1 minute
 
     // return response with updatedUser
     return res
@@ -275,25 +267,26 @@ const useAnotherUserReferredCode = wrapAsync(async (req, res, next) => {
 
     const level1User = await User.findOne({ referredCode: referrelCode });
 
-    if (level1User) {
+    if (!level1User) return next(new ApiError(400, "Invalid Referrel Code"));
 
-        user.referredBy = referrelCode;
+    console.log(level1User)
 
-        level1User.directReferred.push(user.referredCode);
+    user.referredBy = referrelCode;
 
-        await user.save();
-        await level1User.save();
+    level1User.directReferred.push(user.referredCode);
 
-        if (level1User.referredBy) {
+    await user.save();
+    await level1User.save();
 
-            const level0User = await User.findOne({ referredCode: level1User.referredBy });
+    if (level1User.referredBy) {
 
-            if (level0User) {
+        const level0User = await User.findOne({ referredCode: level1User.referredBy });
 
-                level0User.indirectReferred.push(user.referredCode);
-                
-                await level0User.save();
-            }
+        if (level0User) {
+
+            level0User.indirectReferred.push(user.referredCode);
+
+            await level0User.save();
         }
     }
 
@@ -309,6 +302,76 @@ const useAnotherUserReferredCode = wrapAsync(async (req, res, next) => {
 });
 
 
+const onboardingPage = wrapAsync(async (req, res, next) => {
+
+    const user = await User.findById(req.user?.id).select("phoneNumber firstName lastName country -_id");
+
+    if (!user) return next(new ApiError(404, "User Not Found"));
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                true,
+                "Onboarding Page Data",
+                user
+            )
+        )
+});
+
+const Onboarding = wrapAsync(async (req, res, next) => {
+    const { phoneNumber, firstName, lastName, country } = req.body;
+
+    const user = await User.findById(req.user?.id);
+
+    if (!user) return next(new ApiError(404, "User Not Found"));
+
+    if (phoneNumber) {
+        user.phoneNumber = (phoneNumber || user.phoneNumber);
+    }
+
+    if (firstName) {
+        user.firstName = (firstName || user.firstName);
+    }
+
+    if (lastName) {
+        user.lastName = (lastName || user.lastName);
+    }
+
+    if (country) {
+        user.country = (country || user.country);
+    }
+
+    await user.save();
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                true,
+                "Onboarding Data Updated Successfully",
+                {}
+            )
+        )
+});
+
+
+const sideMenu = wrapAsync(async (req, res, next) => {
+    const user = await User.findById(req.user?.id).select("profileImage fullName username -_id");
+
+    if (!user) return next(new ApiError(404, "User Not Found"));
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                true,
+                "Side Menu User Data",
+                user
+            )
+        )
+});
+
 export {
     tapMining,
     leaderBoard,
@@ -316,5 +379,8 @@ export {
     dashboard,
     teams,
     useAnotherUserReferredCode,
+    onboardingPage,
+    Onboarding,
+    sideMenu
 }
 

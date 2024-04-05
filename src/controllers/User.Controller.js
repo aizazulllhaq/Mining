@@ -271,7 +271,7 @@ const verifyOTPAndSetNewPassword = wrapAsync(async (req, res, next) => {
 // Secure Controller's
 const userSetProfilePage = wrapAsync(async (req, res, next) => {
 
-    const user = await User.findById(req.user?.id).select("-password -otp -rp_otp -is_verified -role -referredBy -directReferrred -indirectReferred -createdAt -updatedAt");
+    const user = await User.findById(req.user?.id).select("firstName lastName profileImage country gender phoneNumber -_id");
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
@@ -327,7 +327,7 @@ const userSetProfile = wrapAsync(async (req, res, next) => {
 
 
 const userProfile = wrapAsync(async (req, res, next) => {
-    const user = await User.findById(req.user.id).select("-firstName -lastName -password -is_verified -rp_otp -otp -role -gender -country -seaPearl -referredBy -directReferred -indirectReferred -createdAt -updatedAt -username -milestone -miningStatus -lastMiningTime -seaCoin -_id -miningPower -indirectReffered -__v");
+    const user = await User.findById(req.user.id).select("firstName lastName profileImage email referredCode phoneNumber country -_id");
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 

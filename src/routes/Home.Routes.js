@@ -3,8 +3,12 @@ import {
     dashboard,
     generateReferrelURL,
     leaderBoard,
+    Onboarding,
+    onboardingPage,
+    sideMenu,
     tapMining,
-    teams
+    teams,
+    useAnotherUserReferredCode
 } from "../controllers/Home.Controller.js";
 import { checkMiningStatus } from "../middlewares/checkMiningStatus.js";
 
@@ -16,5 +20,9 @@ homeRouter
     .get("/mining", checkMiningStatus, tapMining)
     .get("/leaderBoard", leaderBoard)
     .get("/referrelURL", generateReferrelURL)
+    .post("/apply-referrelCode", useAnotherUserReferredCode)
+    .get("/onboarding", onboardingPage)
+    .put("/onboarding", Onboarding)
+    .get("/sideMenu",sideMenu)
 
 export default homeRouter;
