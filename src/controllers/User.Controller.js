@@ -35,7 +35,7 @@ const getEmailToVerify = wrapAsync(async (req, res, next) => {
     if (user) {
         const OTP = generateOTP();
 
-        SendEmailVerificationOTP(email, OTP);
+        // SendEmailVerificationOTP(email, OTP);
 
         user.otp = OTP;
         await user.save();
@@ -49,7 +49,7 @@ const getEmailToVerify = wrapAsync(async (req, res, next) => {
 
     const OTP = generateOTP();
 
-    SendEmailVerificationOTP(email, OTP);
+    // SendEmailVerificationOTP(email, OTP);
 
     // After the above validation when everything is Clear
     const randomReferredCode = crypto.randomBytes(3).readUIntBE(0, 3).toString().padStart(8, '0');

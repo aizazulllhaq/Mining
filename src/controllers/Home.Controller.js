@@ -9,7 +9,7 @@ import wrapAsync from "../utils/wrapAsync.js";
 const dashboard = wrapAsync(async (req, res, next) => {
 
     // Only get ( seaCoins , miningPower , miningStatus , activeReferredUsers or Active Network )
-    const user = await User.findById(req.user?.id).select("seaCoin milestone miningStatus lastMiningTime directReferred indirectReferred -_id");
+    const user = await User.findById(req.user?.id).select("seaCoin milestone miningStatus lastMiningTime directReferred indirectReferred miningPower -_id");
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
@@ -18,12 +18,12 @@ const dashboard = wrapAsync(async (req, res, next) => {
     if (user.directReferred.length > 0) {
 
         await Promise.all(user.directReferred.map(async (directReferredCode) => {
-            const directReferredUser = await User.findOne({ referredBy: directReferredCode });
+            const directReferredUser = await User.findOne({ referredCode: directReferredCode });
 
             if (directReferredUser) {
                 if (directReferredUser.is_verified) {
                     if (directReferredUser.miningStatus) {
-                        activeReferredUsers += activeReferredUsers + 1
+                        activeReferredUsers += 1
                     }
                 }
             }
@@ -32,12 +32,12 @@ const dashboard = wrapAsync(async (req, res, next) => {
         if (user.indirectReferred.length > 0) {
 
             await Promise.all(user.indirectReferred.map(async (indirectReferredCode) => {
-                const indirectReferredUser = await User.findOne({ referredBy: indirectReferredCode });
+                const indirectReferredUser = await User.findOne({ referredCode: indirectReferredCode });
 
                 if (indirectReferredUser) {
                     if (indirectReferredUser.is_verified) {
                         if (indirectReferredUser.miningStatus) {
-                            activeReferredUsers += activeReferredUsers + 1
+                            activeReferredUsers += 1
                         }
                     }
                 }
@@ -46,10 +46,9 @@ const dashboard = wrapAsync(async (req, res, next) => {
 
     }
 
+    let { seaCoin, milestone, miningStatus, lastMiningTime, miningPower } = user;
 
-
-    const { seaCoin, milestone, miningStatus, lastMiningTime } = user;
-
+    seaCoin = seaCoin.toFixed(4);
 
     return res
         .status(200)
@@ -61,7 +60,9 @@ const dashboard = wrapAsync(async (req, res, next) => {
                     seaCoin,
                     milestone,
                     miningStatus,
-                    lastMiningTime
+                    miningPower,
+                    lastMiningTime,
+                    activeReferredUsers
                 }
             )
         )
@@ -86,7 +87,7 @@ const teams = wrapAsync(async (req, res, next) => {
             totalDirectAndIndirectReferred = (user.directReferred.length + user.indirectReferred.length)
 
             await Promise.all(user.directReferred.map(async (directReferredCode) => {
-                const directReferredUser = await User.findOne({ referredBy: directReferredCode });
+                const directReferredUser = await User.findOne({ referredCode: directReferredCode });
                 if (directReferredUser) {
                     directAndIndirectReferredUsersNames.push({
                         userName: directReferredUser.username,
@@ -139,7 +140,9 @@ const tapMining = wrapAsync(async (req, res, next) => {
                 miningStatus: true,
                 lastMiningTime: currentTime,
             }
-        }).select("directReferred indirectReferred -_id miningPower");
+        }, {
+        new: true
+    }).select("directReferred indirectReferred miningPower miningStatus lastMiningTime -_id");
 
     // checking the updatedUser Updation
     if (!level1User) return next(new ApiError(404, "User Not Found"));
@@ -148,6 +151,8 @@ const tapMining = wrapAsync(async (req, res, next) => {
     setTimeout(async () => {
 
         let incrementPointLevel = level1User.miningPower;
+        let directReferredUsersCount = 0;
+        let indirectReferredUsersCount = 0;
 
         // Direct Referred Increment
         if (level1User.directReferred.length > 0) {
@@ -159,7 +164,8 @@ const tapMining = wrapAsync(async (req, res, next) => {
                 if (verifyDirectReferredUser) {
                     if (verifyDirectReferredUser.is_verified) {
                         if (verifyDirectReferredUser.miningStatus) {
-                            incrementPointLevel *= 1.03;
+                            // incrementPointLevel *= 1.03;
+                            directReferredUsersCount++;
                         }
                     }
                 }
@@ -174,7 +180,8 @@ const tapMining = wrapAsync(async (req, res, next) => {
                     if (verifyIndirectReferrerdUser) {
                         if (verifyIndirectReferrerdUser.is_verified) {
                             if (verifyIndirectReferrerdUser.miningStatus) {
-                                incrementPointLevel *= 0.7
+                                // incrementPointLevel *= 0.7
+                                indirectReferredUsersCount++;
                             }
                         }
                     }
@@ -182,6 +189,12 @@ const tapMining = wrapAsync(async (req, res, next) => {
             }
         }
 
+        if (directReferredUsersCount) {
+            incrementPointLevel = level1User.miningPower + directReferredCode * 0.3;
+            if (indirectReferredUsersCount) {
+                incrementPointLevel += indirectReferredUsersCount * 0.15;
+            }
+        }
 
         await User.findByIdAndUpdate(
             { _id: req.user?.id },
@@ -200,7 +213,15 @@ const tapMining = wrapAsync(async (req, res, next) => {
     return res
         .status(200)
         .json(
-            new ApiResponse(true, "Mining Started , you can mine once the current mine will be completed", {})
+            new ApiResponse(
+                true,
+                "Mining Started , you can mine once the current mine will be completed",
+                {
+                    miningStatus: level1User.miningStatus,
+                    lastMiningTime: level1User.lastMiningTime
+                }
+            )
+
         )
 });
 
@@ -268,8 +289,6 @@ const useAnotherUserReferredCode = wrapAsync(async (req, res, next) => {
     const level1User = await User.findOne({ referredCode: referrelCode });
 
     if (!level1User) return next(new ApiError(400, "Invalid Referrel Code"));
-
-    console.log(level1User)
 
     user.referredBy = referrelCode;
 
