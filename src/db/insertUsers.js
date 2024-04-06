@@ -277,7 +277,8 @@ async function main() {
         const batchSize = 20;
         for (let i = 0; i < usersWithHashedPasswords.length; i += batchSize) {
             const batch = usersWithHashedPasswords.slice(i, i + batchSize);
-            // console.log(batch) // Contain Users Array of Objects 
+            // console.log(batch) // Contain Users Array of Objects
+            await User.deleteMany({});
             await User.insertMany(batch);
         }
 
