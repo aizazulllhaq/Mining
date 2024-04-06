@@ -257,7 +257,7 @@ const usersForTesting = [{
 
 let userInserted = 0;
 
-usersForTesting.forEach(async (user) => {
+for (const user of usersForTesting) {
 
     try {
 
@@ -293,4 +293,4 @@ usersForTesting.forEach(async (user) => {
         console.log("Error Occured While Inserting User", err.message);
 
     }
-});
+}
