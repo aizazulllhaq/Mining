@@ -51,7 +51,6 @@ const UserSchema = new Schema({
     gender: {
         type: String,
         enum: ["Male", "Female", "Other"],
-        default: null,
     },
     phoneNumber: {
         type: Number,
