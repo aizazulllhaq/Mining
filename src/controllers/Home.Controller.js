@@ -207,7 +207,7 @@ const tapMining = wrapAsync(async (req, res, next) => {
                     seaCoin: incrementPointLevel
                 }
             })
-    }, 60000) // 12 * 60 * 60 * 1000 = 12 hours &  60 * 1000 = 1 minute
+    }, 7200000) // 12 * 60 * 60 * 1000 = 12 hours &  60 * 1000 = 1 minute
 
     // return response with updatedUser
     return res
