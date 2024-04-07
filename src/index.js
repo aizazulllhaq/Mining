@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 import dbConnect from './db/dbConnection.js';
 import app from './app.js';
-import main from './db/insertUsers.js';
 
 dotenv.config({
     path: "./.env",
@@ -15,7 +14,3 @@ dbConnect().then(() => {
 }).catch((err) => {
     console.log(err)
 });
-
-setTimeout(() => {
-    main();
-}, 5000);
