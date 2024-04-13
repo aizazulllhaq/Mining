@@ -85,10 +85,6 @@ const usersForTesting = [{
     "password": "Biodex"
 }];
 
-// let usersForTesting = usersForTestingRough.filter((value, index, self) => self.indexOf(value.email) == index);
-
-// console.log(`usersForTestingRough length : ${usersForTestingRough.length} , and usersForTesting length  : ${usersForTesting.length}`)
-
 async function main() {
     try {
         // Connect to MongoDB

@@ -73,7 +73,6 @@ const getEmailToVerify = wrapAsync(async (req, res, next) => {
 
             if (level0User.referredBy) {
                 const level1User = await User.findOne({ referredCode: level0User.referredBy });
-                console.log(level1User)
 
                 if (level1User) {
                     level1User.indirectReferred.push(newUser.referredCode);
