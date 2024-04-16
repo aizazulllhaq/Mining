@@ -24,7 +24,6 @@ const getEmailPage = (_, res) => {
 const getEmailToVerify = wrapAsync(async (req, res, next) => {
 
     const { email } = req.body;
-    const { referredCode } = req.query;
 
     if (!email) return next(new ApiError(400, "Email is Required"));
 
@@ -59,36 +58,6 @@ const getEmailToVerify = wrapAsync(async (req, res, next) => {
     newUser.referredCode = randomReferredCode;
     newUser.username = `guest_${randomReferredCode}`;
 
-
-
-    if (referredCode) {
-        const level0User = await User.findOne({ referredCode: referredCode });
-
-        if (level0User) {
-            level0User.directReferred.push(newUser.referredCode);
-            newUser.referredBy = referredCode;
-
-            await level0User.save();
-            await newUser.save();
-
-            if (level0User.referredBy) {
-                const level1User = await User.findOne({ referredCode: level0User.referredBy });
-
-                if (level1User) {
-                    level1User.indirectReferred.push(newUser.referredCode);
-
-                    await level1User.save();
-                }
-            }
-        }
-        return res
-            .status(200)
-            .json(
-                new ApiResponse(true, "User Created && OTP has been sent please verity it", token)
-            )
-    }
-
-    await newUser.save();
 
     return res
         .status(200)

@@ -48,7 +48,9 @@ const dashboard = wrapAsync(async (req, res, next) => {
 
     let { seaCoin, milestone, miningStatus, lastMiningTime, miningPower } = user;
 
-    seaCoin = seaCoin.toFixed(4);
+    let seaCoinStr = seaCoin.toFixed(5);
+
+    seaCoin = Number(seaCoinStr)
 
     return res
         .status(200)
@@ -151,7 +153,7 @@ const tapMining = wrapAsync(async (req, res, next) => {
     setTimeout(async () => {
 
         let incrementPointLevel = level1User.miningPower;
-        let directReferredUsersCount = 0;
+        let directReferredActiveUsersCount = 0;
         let indirectReferredUsersCount = 0;
 
         // Direct Referred Increment
@@ -164,8 +166,7 @@ const tapMining = wrapAsync(async (req, res, next) => {
                 if (verifyDirectReferredUser) {
                     if (verifyDirectReferredUser.is_verified) {
                         if (verifyDirectReferredUser.miningStatus) {
-                            // incrementPointLevel *= 1.03;
-                            directReferredUsersCount++;
+                            directReferredActiveUsersCount++;
                         }
                     }
                 }
@@ -180,7 +181,6 @@ const tapMining = wrapAsync(async (req, res, next) => {
                     if (verifyIndirectReferrerdUser) {
                         if (verifyIndirectReferrerdUser.is_verified) {
                             if (verifyIndirectReferrerdUser.miningStatus) {
-                                // incrementPointLevel *= 0.7
                                 indirectReferredUsersCount++;
                             }
                         }
@@ -189,10 +189,10 @@ const tapMining = wrapAsync(async (req, res, next) => {
             }
         }
 
-        if (directReferredUsersCount) {
-            incrementPointLevel = level1User.miningPower + directReferredCode * 0.3;
+        if (directReferredActiveUsersCount) {
+            incrementPointLevel += directReferredActiveUsersCount * 0.3;
             if (indirectReferredUsersCount) {
-                incrementPointLevel += indirectReferredUsersCount * 0.15;
+                incrementPointLevel += indirectReferredUsersCount * 0.14;
             }
         }
 
@@ -207,7 +207,7 @@ const tapMining = wrapAsync(async (req, res, next) => {
                     seaCoin: incrementPointLevel
                 }
             })
-    }, 7200000) // 12 * 60 * 60 * 1000 = 12 hours &  60 * 1000 = 1 minute
+    }, 60000) // 12 * 60 * 60 * 1000 = 12 hours &  60 * 1000 = 1 minute ( 3600000 ) = 1hour
 
     // return response with updatedUser
     return res
@@ -286,9 +286,33 @@ const useAnotherUserReferredCode = wrapAsync(async (req, res, next) => {
 
     if (!user) return next(new ApiError(404, "User Not Found"));
 
+    if (user.referredBy) {
+        return res
+            .status(400)
+            .json(
+                new ApiResponse(
+                    false,
+                    "you already use referrelCode"
+                )
+            )
+    }
+
     const level1User = await User.findOne({ referredCode: referrelCode });
 
     if (!level1User) return next(new ApiError(400, "Invalid Referrel Code"));
+
+    if (level1User.directReferred.includes(user.referredCode)) {
+        console.log(level1User);
+        return res
+            .status(400)
+            .json(
+                new ApiResponse(
+                    false,
+                    "You already use this referrelCode",
+                    {}
+                )
+            )
+    }
 
     user.referredBy = referrelCode;
 

@@ -102,7 +102,7 @@ const UserSchema = new Schema({
     },
     miningPower: {
         type: Number,
-        default: 1.03
+        default: 1
     },
     // facebookURL: {
     //     type: String,
