@@ -5,10 +5,7 @@ const generateJWTTokenForEmailVerification = (email) => {
         const token = jwt.sign({
             email,
         },
-            process.env.ACCESS_TOKEN_SECRET,
-            {
-                expiresIn: process.env.ACCESS_TOKEN_EXPIRY
-            }
+            process.env.ACCESS_TOKEN_SECRET
         )
 
         return token;

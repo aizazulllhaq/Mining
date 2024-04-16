@@ -134,7 +134,7 @@ UserSchema.methods.isPasswordCorrect = async function (password) {
     // return -> true , false
 }
 
-UserSchema.methods.generateAccessToken = async function () {
+UserSchema.methods.generateAccessToken = function () {
 
     const payload = {
         id: this._id,
@@ -143,10 +143,7 @@ UserSchema.methods.generateAccessToken = async function () {
         role: this.role
     }
 
-    const token = await jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET,
-        {
-            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
-        });
+    const token = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET);
 
     return token;
 }
