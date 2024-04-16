@@ -88,7 +88,7 @@ const usersForTesting = [{
 async function main() {
     try {
         // Connect to MongoDB
-        await connect("mongodb://127.0.0.1:27017/Mining_1");
+        await connect(process.env.MONGO_ATLAS_URL);
 
         // Generate hashed passwords for all users
         await User.deleteMany({});
