@@ -58,6 +58,8 @@ const getEmailToVerify = wrapAsync(async (req, res, next) => {
     newUser.referredCode = randomReferredCode;
     newUser.username = `guest_${randomReferredCode}`;
 
+    await newUser.save();
+
 
     return res
         .status(200)
