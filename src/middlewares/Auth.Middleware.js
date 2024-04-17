@@ -20,7 +20,7 @@ const checkForAuthentication = (req, _, next) => {
         next();
 
     } catch (err) {
-        next();
+        next(new ApiError(400, err.message));
     }
 
 }
@@ -29,9 +29,9 @@ const restrictFromSecureRotues = (role = []) => {
     return (req, _, next) => {
         if (!req.user) return next(new ApiError(401, "Unauthorize Please First Login"));
 
-        if (!req.user.is_verified) return (next(new ApiError(400, "Please First Verify your Mail")));
+        if (!req.user.is_verified) return next(new ApiError(400, "Please First Verify your Mail"));
 
-        if (!role.includes(req.user.role)) return next(400, "Role Must be Present");
+        if (!role.includes(req.user.role)) return next(new ApiError(400, "Role Must be Present"));
 
         next();
     }

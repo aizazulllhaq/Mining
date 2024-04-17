@@ -2,7 +2,7 @@ import User from "../models/User.Model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import wrapAsync from "../utils/wrapAsync.js";
-
+import cron from "node-cron";
 
 
 // Dashboard Page 
@@ -129,7 +129,7 @@ const teams = wrapAsync(async (req, res, next) => {
 });
 
 
-// Changing Mining Status & Increment seaCoins
+// // Changing Mining Status & Increment seaCoins
 const tapMining = wrapAsync(async (req, res, next) => {
     // creating current timestamp , to check in again mining time is the mining 12 hours completed or Not
     const currentTime = Date.now();
@@ -197,7 +197,7 @@ const tapMining = wrapAsync(async (req, res, next) => {
         }
 
         await User.findByIdAndUpdate(
-            { _id: req.user?.id },
+            req.user?.id,
             {
                 $set: {
                     miningStatus: false,
