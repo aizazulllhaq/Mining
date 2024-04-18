@@ -2,7 +2,6 @@ import User from "../models/User.Model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import wrapAsync from "../utils/wrapAsync.js";
-import cron from "node-cron";
 
 
 // Dashboard Page 
@@ -125,7 +124,6 @@ const teams = wrapAsync(async (req, res, next) => {
                 }
             )
         )
-
 });
 
 
@@ -207,7 +205,7 @@ const tapMining = wrapAsync(async (req, res, next) => {
                     seaCoin: incrementPointLevel
                 }
             })
-    }, 3600000) // 12 * 60 * 60 * 1000 = 12 hours &  60 * 1000 = 1 minute ( 3600000 ) = 1hour
+    }, 500000) // 12 * 60 * 60 * 1000 = 12 hours &  60 * 1000 = 1 minute ( 3600000 ) = 1hour
 
     // return response with updatedUser
     return res
