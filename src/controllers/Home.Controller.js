@@ -190,7 +190,8 @@ const tapMining = wrapAsync(async (req, res, next) => {
         if (directReferredActiveUsersCount) {
             incrementPointLevel += directReferredActiveUsersCount * 0.3;
             console.log(`incrementPointLevel after directReferredActiveUsersCount is : ${incrementPointLevel}`)
-            if (indirectReferredUsersCount) {
+            if (indirectReferredUsersCount > 0) {
+                console.log(indirectReferredUsersCount)
                 incrementPointLevel += indirectReferredUsersCount * 0.14;
                 console.log(`incrementPointLevel after IndirectReferredActiveUsersCount is : ${incrementPointLevel}`)
             }
